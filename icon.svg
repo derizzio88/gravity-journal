@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" fill="#f4f0e8"/>
+  <rect x="16" y="16" width="160" height="160" rx="8" fill="none" stroke="#2a2118" stroke-width="4"/>
+  <text x="96" y="85" font-family="serif" font-size="52" font-weight="bold" text-anchor="middle" fill="#2a2118">G</text>
+  <text x="96" y="130" font-family="monospace" font-size="18" text-anchor="middle" fill="#8b7355">JOURNAL</text>
+  <line x1="30" y1="148" x2="162" y2="148" stroke="#8b7355" stroke-width="1"/>
+  <line x1="30" y1="156" x2="162" y2="156" stroke="#8b7355" stroke-width="1"/>
+</svg>
