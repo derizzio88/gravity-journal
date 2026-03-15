@@ -189,14 +189,93 @@ function loadData(){
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
+// ── MIGRATION: always carry forward data even if KEY changes ──────────────────
+var LEGACY_KEYS=["gravity_og_v1","gravity_og_v2","gravity_og_v3"];
+(function migrate(){
+  if(localStorage.getItem(KEY))return; // already have current data
+  for(var i=0;i<LEGACY_KEYS.length;i++){
+    var old=localStorage.getItem(LEGACY_KEYS[i]);
+    if(old){try{var d=JSON.parse(old);localStorage.setItem(KEY,old);console.log("Migrated from "+LEGACY_KEYS[i]);}catch(e){}return;}
+  }
+})();
+
+// ── EXPORT: download data as JSON file ────────────────────────────────────────
+function exportData(){
+  var d=loadData();
+  var json=JSON.stringify(d,null,2);
+  var blob=new Blob([json],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;
+  a.download="gravity-journal-backup-"+new Date().toISOString().split("T")[0]+".json";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORT: restore from JSON backup file ────────────────────────────────────
+function importData(file,callback){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var d=JSON.parse(e.target.result);
+      // Validate structure
+      if(!d.sessions||!Array.isArray(d.sessions)){callback("Invalid backup file - missing sessions.");return;}
+      // Merge: keep newer sessions, don't overwrite
+      var existing=loadData();
+      var existingIds={};
+      for(var i=0;i<existing.sessions.length;i++)existingIds[existing.sessions[i].id]=true;
+      var newSessions=d.sessions.filter(function(s){return!existingIds[s.id];});
+      var merged={
+        sessions:existing.sessions.concat(newSessions).sort(function(a,b){return a.date>b.date?1:-1;}),
+        progressions:Object.assign({},d.progressions||{},existing.progressions),
+        bodyComp:existing.bodyComp||d.bodyComp||[],
+        settings:existing.settings||d.settings||{}
+      };
+      saveData(merged);
+      callback(null,newSessions.length+" new sessions merged, "+existing.sessions.length+" existing kept.");
+    }catch(err){callback("Could not parse backup file: "+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+// ── AUTO-BACKUP REMINDER: flag if no backup in 7 days ────────────────────────
+function checkBackupReminder(){
+  var last=localStorage.getItem("gravity_last_backup");
+  if(!last)return true;
+  return (Date.now()-parseInt(last))>7*86400000;
+}
+function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.now()));}
+
+
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
+var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
+function startRest(secs,catKey){
+  if(restTimer)clearInterval(restTimer);
+  restStart=Date.now();restDuration=0;restTarget=secs;restForCat=catKey;
+  restTimer=setInterval(function(){
+    restDuration=Math.round((Date.now()-restStart)/1000);
+    var el=document.getElementById("rest_"+catKey);
+    if(el){
+      var rem=Math.max(0,restTarget-restDuration);
+      el.textContent=rem>0?"Rest: "+rem+"s":"Ready!";
+      el.style.color=rem>0?Cm:Cg;
+    }
+    if(restDuration>=restTarget){
+      clearInterval(restTimer);restTimer=null;
+      try{var a=new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"+Array(100).join("A"));a.play();}catch(e){}
+    }
+  },500);
+}
 
 function getTh(catKey,exId){
   var cat=OG[catKey];if(!cat)return{val:10,type:"con"};
   var ex=null;for(var i=0;i<cat.progressions.length;i++)if(cat.progressions[i].id===exId){ex=cat.progressions[i];break;}
   if(!ex)return{val:10,type:"con"};
   var idx=typeof ex.level==="number"?Math.min(Math.max(0,ex.level-1),cat.rt.length-1):2;
-  return{val:cat.rt[idx]||8,type:ex.type};
+  var repVal=cat.rt[idx]||8;
+  // OG: 1 rep = ~2s iso hold. Working set = 60-75% of max, use 65% midpoint.
+  var val=ex.type==="iso"?Math.round(repVal*2*0.65):repVal;
+  return{val:val,type:ex.type};
 }
 function calcR(sessions,catKey,exId){
   var th=getTh(catKey,exId),sets=[],recent=sessions.slice(-21);
@@ -231,6 +310,183 @@ function iBtn(t,fn,o){
   var e=mk("button",s,t);if(!opt.disabled)e.addEventListener("click",fn);return e;
 }
 
+
+function renderData(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var d=loadData();
+  var needsBackup=checkBackupReminder();
+
+  // Status card
+  var statCard=card(needsBackup?{borderLeft:"3px solid "+Cr}:{borderLeft:"3px solid "+Cg});
+  statCard.appendChild(mk("div",{fontFamily:FH,fontSize:"15px",color:needsBackup?Cr:Cg,marginBottom:"6px"},needsBackup?"Backup recommended":"Data is protected"));
+  var stats=[
+    "Sessions: "+d.sessions.length,
+    "Total sets: "+d.sessions.reduce(function(n,s){return n+s.sets.length;},0),
+    "Progressions set: "+Object.keys(d.progressions||{}).filter(function(k){return d.progressions[k];}).length,
+    "Storage key: "+KEY
+  ];
+  for(var i=0;i<stats.length;i++)statCard.appendChild(tw(stats[i],{color:Cm,fontSize:"11px",marginBottom:"2px"}));
+  wrap.appendChild(statCard);
+
+  // How updates work - explanation
+  var infoCard=card({background:"#e8f0e8",borderLeft:"3px solid "+Cg});
+  infoCard.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Cg,marginBottom:"6px"},"Safe to update the app"));
+  var infoLines=[
+    "Your data is stored in this browser's localStorage, not in the HTML file itself.",
+    "Uploading a new index.html to Netlify or GitHub will NOT erase your data.",
+    "The app also auto-migrates data from older storage keys when you update.",
+    "However: clearing your browser data WILL erase it. Use the backup below."
+  ];
+  for(var i=0;i<infoLines.length;i++)statCard.appendChild(tw(infoLines[i],{color:Cm,fontSize:"11px",marginBottom:"3px"}));
+  infoCard.appendChild(tw("Your data lives in the browser, separate from the app code. Updating the HTML file is safe.",{color:Cg,fontSize:"12px",marginBottom:"4px"}));
+  infoCard.appendChild(tw("Switching browsers, clearing site data, or moving devices requires a backup.",{color:Cm,fontSize:"11px"}));
+  wrap.appendChild(infoCard);
+
+  // Export
+  var expCard=card();
+  expCard.appendChild(mk("div",{fontFamily:FH,fontSize:"14px",color:Ci,marginBottom:"6px"},"Export Backup"));
+  expCard.appendChild(tw("Downloads all your sessions, progressions, and settings as a JSON file. Save it somewhere safe.",{color:Cm,fontSize:"11px",marginBottom:"10px"}));
+  expCard.appendChild(mk("button",{fontFamily:FH,fontSize:"13px",color:Cs,background:Cg,border:"1px solid "+Cg,padding:"10px 0",borderRadius:"2px",cursor:"pointer",width:"100%",display:"block"},"[ DOWNLOAD BACKUP ]"));
+  expCard.lastChild.addEventListener("click",function(){exportData();markBackedUp();render();});
+  wrap.appendChild(expCard);
+
+  // Import
+  var impCard=card();
+  impCard.appendChild(mk("div",{fontFamily:FH,fontSize:"14px",color:Ci,marginBottom:"6px"},"Restore from Backup"));
+  impCard.appendChild(tw("Merges a backup file with your current data. Existing sessions are kept — new ones are added. Safe to run multiple times.",{color:Cm,fontSize:"11px",marginBottom:"10px"}));
+  var fileInput=document.createElement("input");fileInput.type="file";fileInput.accept=".json";fileInput.style.marginBottom="8px";fileInput.style.width="100%";fileInput.style.fontFamily=FB;fileInput.style.fontSize="12px";fileInput.style.color=Ci;
+  var importStatus=tw("",{color:Cg,fontSize:"12px",marginTop:"8px",fontStyle:"italic"});
+  fileInput.addEventListener("change",function(e){
+    var file=e.target.files[0];if(!file)return;
+    importStatus.textContent="Loading...";
+    importData(file,function(err,msg){
+      if(err){importStatus.textContent="Error: "+err;importStatus.style.color=Cr;}
+      else{importStatus.textContent="Done: "+msg;importStatus.style.color=Cg;D=loadData();render();}
+    });
+  });
+  impCard.appendChild(fileInput);
+  impCard.appendChild(importStatus);
+  wrap.appendChild(impCard);
+
+  // Danger zone
+  var dangerCard=card({borderLeft:"3px solid "+Cr});
+  dangerCard.appendChild(mk("div",{fontFamily:FH,fontSize:"14px",color:Cr,marginBottom:"6px"},"Reset All Data"));
+  dangerCard.appendChild(tw("Permanently deletes all sessions, progressions, and settings. Cannot be undone. Export a backup first.",{color:Cm,fontSize:"11px",marginBottom:"10px"}));
+  var resetBtn=mk("button",{fontFamily:FH,fontSize:"12px",color:Cr,background:"transparent",border:"1px solid "+Cr,padding:"8px 0",borderRadius:"2px",cursor:"pointer",width:"100%",display:"block"},"[ ERASE ALL DATA ]");
+  var confirmed=false;
+  resetBtn.addEventListener("click",function(){
+    if(!confirmed){resetBtn.textContent="[ TAP AGAIN TO CONFIRM ]";confirmed=true;setTimeout(function(){resetBtn.textContent="[ ERASE ALL DATA ]";confirmed=false;},3000);}
+    else{localStorage.removeItem(KEY);D=loadData();VIEW="wod";render();}
+  });
+  dangerCard.appendChild(resetBtn);
+  wrap.appendChild(dangerCard);
+  return wrap;
+}
+
+
+function renderHistory(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+
+  // Summary stats
+  var statRow=dv({display:"flex",gap:"8px",marginBottom:"4px"});
+  var total=D.sessions.length;
+  var thisWeek=0;var weekAgo=Date.now()-7*86400000;
+  for(var i=0;i<D.sessions.length;i++)if(new Date(D.sessions[i].date).getTime()>=weekAgo)thisWeek++;
+  var sd=[{l:"All sessions",v:total},{l:"This week",v:thisWeek},{l:"Total sets",v:D.sessions.reduce(function(n,s){return n+s.sets.length;},0)}];
+  for(var si=0;si<sd.length;si++){
+    var sc=card({flex:"1",marginBottom:"0",padding:"10px"});sc.appendChild(lbl(sd[si].l));sc.appendChild(mk("div",{fontFamily:FH,fontSize:"22px",color:Ci},String(sd[si].v)));statRow.appendChild(sc);
+  }
+  wrap.appendChild(statRow);
+
+  // Per-exercise trend - show exercises that have data
+  var exData={};
+  for(var i=0;i<D.sessions.length;i++){
+    var sess=D.sessions[i];
+    for(var j=0;j<sess.sets.length;j++){
+      var b=sess.sets[j];
+      if(b.modifier!=="std")continue;
+      var key=b.category+"|"+b.exerciseId;
+      if(!exData[key])exData[key]={catKey:b.category,exId:b.exerciseId,entries:[]};
+      exData[key].entries.push({date:sess.date,val:b.seconds||b.reps||0});
+    }
+  }
+  var exKeys=Object.keys(exData);
+  if(exKeys.length===0){
+    wrap.appendChild(tw("No session data yet. Complete some workouts to see trends.",{color:Cm,fontStyle:"italic",padding:"20px 0",textAlign:"center"}));
+    return wrap;
+  }
+
+  wrap.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci,borderBottom:"1px solid "+Cm,paddingBottom:"6px",marginBottom:"4px"},"Exercise Trends"));
+
+  for(var ei=0;ei<exKeys.length;ei++){
+    (function(key){
+      var d=exData[key];var ex=findEx(d.catKey,d.exId);if(!ex)return;
+      var cat=OG[d.catKey];if(!cat)return;
+      var th=getTh(d.catKey,d.exId);
+      var entries=d.entries;var last5=entries.slice(-5);
+      var latestVal=last5[last5.length-1].val;
+      var prevVal=last5.length>1?last5[last5.length-2].val:null;
+      var trend=prevVal!==null?(latestVal>prevVal?"up":latestVal<prevVal?"down":"flat"):"new";
+      var trendIcon=trend==="up"?"+":trend==="down"?"-":"=";
+      var trendColor=trend==="up"?Cg:trend==="down"?Cr:Cm;
+
+      var c=card({});
+      var hrow=dv({display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"});
+      hrow.appendChild(mk("span",{color:cat.color,fontSize:"11px"},cat.icon));
+      hrow.appendChild(mk("span",{flex:"1",fontFamily:FH,fontSize:"13px",color:Ci},ex.name));
+      hrow.appendChild(mk("span",{fontFamily:FH,fontSize:"16px",color:trendColor,fontWeight:"bold"},trendIcon));
+      hrow.appendChild(mk("span",{fontFamily:FH,fontSize:"16px",color:Ci},latestVal+(ex.type==="iso"?"s":"")));
+      c.appendChild(hrow);
+
+      // Sparkline-style bar chart using divs
+      var chartWrap=dv({display:"flex",alignItems:"flex-end",gap:"3px",height:"40px",marginBottom:"6px"});
+      var maxVal=0;for(var i=0;i<last5.length;i++)if(last5[i].val>maxVal)maxVal=last5[i].val;
+      if(maxVal===0)maxVal=1;
+      for(var i=0;i<last5.length;i++){
+        var barH=Math.max(4,Math.round((last5[i].val/maxVal)*36));
+        var isLatest=i===last5.length-1;
+        var barCol=isLatest?(last5[i].val>=th.val?Cg:cat.color):Cl;
+        var barWrap=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"});
+        barWrap.appendChild(dv({width:"100%",height:barH+"px",background:barCol,borderRadius:"2px"}));
+        barWrap.appendChild(mk("span",{fontSize:"8px",color:Cm,fontFamily:FB},last5[i].val+(ex.type==="iso"?"s":"")));
+        chartWrap.appendChild(barWrap);
+      }
+      c.appendChild(chartWrap);
+
+      // Target line note
+      var pct=Math.min(100,Math.round(latestVal/th.val*100));
+      c.appendChild(ibar(pct,pct>=100?Cg:cat.color));
+      c.appendChild(tw("Target: "+th.val+(ex.type==="iso"?"s":" reps")+" | "+entries.length+" sets logged",{color:Cm,fontSize:"10px",marginTop:"3px"}));
+      wrap.appendChild(c);
+    })(exKeys[ei]);
+  }
+
+  // Session log (last 10)
+  wrap.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci,borderBottom:"1px solid "+Cm,paddingBottom:"6px",marginBottom:"4px",marginTop:"8px"},"Recent Sessions"));
+  var recent=D.sessions.slice(-10).reverse();
+  for(var ri=0;ri<recent.length;ri++){
+    (function(sess){
+      var sc=card({});
+      var sHdr=dv({display:"flex",justifyContent:"space-between",marginBottom:"8px"});
+      sHdr.appendChild(mk("span",{fontFamily:FH,fontSize:"12px",color:Ci},sess.date));
+      sHdr.appendChild(mk("span",{fontFamily:FB,fontSize:"10px",color:Cm},sess.sets.length+" sets"));
+      sc.appendChild(sHdr);
+      for(var si=0;si<sess.sets.length;si++){
+        var b=sess.sets[si];var ex=findEx(b.category,b.exerciseId);var cat=OG[b.category];
+        var mObj=null;for(var mi=0;mi<MODS.length;mi++)if(MODS[mi].id===b.modifier){mObj=MODS[mi];break;}
+        var row=dv({display:"flex",alignItems:"center",gap:"7px",padding:"3px 0",borderBottom:si<sess.sets.length-1?"1px dashed "+Cl:"none"});
+        if(cat)row.appendChild(mk("span",{fontSize:"9px",color:cat.color},cat.icon));
+        row.appendChild(mk("span",{flex:"1",fontSize:"11px",fontFamily:FB},ex?ex.name:b.exerciseId));
+        if(mObj&&mObj.id!=="std")row.appendChild(stamp(mObj.s,Cm));
+        row.appendChild(mk("span",{fontSize:"12px",fontFamily:FH,color:Ci},b.seconds?b.seconds+"s":b.reps?String(b.reps):"-"));
+        sc.appendChild(row);
+      }
+      wrap.appendChild(sc);
+    })(recent[ri]);
+  }
+  return wrap;
+}
+
 function render(){
   var root=document.getElementById("root");
   root.innerHTML="";
@@ -241,14 +497,16 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",progress:"Progression Charts",settings:"Training Settings"};
+  var titles={wod:"Today's Workout",log:"Manual Log",progress:"Progression Charts",history:"Performance History",data:"Data & Backup",settings:"Training Settings"};
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
   else if(VIEW==="progress")root.appendChild(renderProgress());
+  else if(VIEW==="history")root.appendChild(renderHistory());
+  else if(VIEW==="data")root.appendChild(renderData());
   else root.appendChild(renderSettings());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -346,6 +604,29 @@ function renderWod(){
   }
   wrap.appendChild(kbC);
 
+  // Manual rest timer card
+  var rtCard=card({marginBottom:"4px"});
+  var rtRow=dv({display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"});
+  rtRow.appendChild(lbl("Rest Timer"));
+  var rtBtns=[[60,"60s"],[90,"90s"],[120,"2m"],[180,"3m"]];
+  for(var rti=0;rti<rtBtns.length;rti++){
+    (function(secs,label){
+      var rb=mk("button",{fontFamily:FB,fontSize:"10px",color:Cm,background:"transparent",border:"1px solid "+Cl,padding:"3px 9px",borderRadius:"2px",cursor:"pointer"},label);
+      rb.addEventListener("click",function(){startRest(secs,"manual");render();});
+      rtRow.appendChild(rb);
+    })(rtBtns[rti][0],rtBtns[rti][1]);
+  }
+  var manualTimerDiv=dv({fontFamily:FH,fontSize:"16px",color:Cg,minWidth:"60px",textAlign:"right"});
+  manualTimerDiv.id="rest_manual";
+  if(restForCat==="manual"&&restTimer){
+    var manRem=Math.max(0,restTarget-restDuration);
+    manualTimerDiv.textContent=manRem>0?manRem+"s":"Go!";
+    manualTimerDiv.style.color=manRem>0?Cm:Cg;
+  }
+  rtRow.appendChild(manualTimerDiv);
+  rtCard.appendChild(rtRow);
+  wrap.appendChild(rtCard);
+
   var cats=splitData.days[dayIdx].cats;
   var anySet=false;for(var ai=0;ai<cats.length;ai++)if(D.progressions[cats[ai]]){anySet=true;break;}
   if(!anySet){
@@ -390,12 +671,63 @@ function renderWod(){
       var dots=dv({display:"flex",gap:"4px",marginBottom:"8px"});
       for(var di=0;di<targetSets;di++)dots.appendChild(mk("div",{flex:"1",height:"7px",borderRadius:"1px",background:di<doneCount?Ci:Cl}));
       c.appendChild(dots);
+      // Rest timer display
+      var restDiv=dv({padding:"6px 0",marginBottom:"4px",minHeight:"20px"});
+      restDiv.id="rest_"+catKey;
+      if(restForCat===catKey&&restTimer){
+        var remT=Math.max(0,restTarget-restDuration);
+        restDiv.textContent=remT>0?"Rest: "+remT+"s":"Ready!";
+        restDiv.style.color=remT>0?Cm:Cg;
+        restDiv.style.fontFamily=FH;restDiv.style.fontSize="13px";
+      }
+      c.appendChild(restDiv);
+
+      // Modifier row on WOD card
+      var wodMod=D._wodMod||{};var curMod=wodMod[catKey]||"std";
+      var modRow=dv({display:"flex",gap:"4px",flexWrap:"wrap",marginBottom:"8px"});
+      for(var mwi=0;mwi<MODS.length;mwi++){
+        (function(m){var mActive=curMod===m.id;
+          var mb=mk("button",{fontFamily:FB,fontSize:"9px",color:mActive?Cs:Cm,background:mActive?Cm:"transparent",border:"1px solid "+Cl,padding:"2px 7px",borderRadius:"2px",cursor:"pointer"},m.s);
+          mb.addEventListener("click",function(){if(!D._wodMod)D._wodMod={};D._wodMod[catKey]=m.id;render();});
+          modRow.appendChild(mb);
+        })(MODS[mwi]);
+      }
+      c.appendChild(modRow);
+      // Actual value input
+      var wodVals=D._wodVals||{};var curVal=wodVals[catKey]||"";
+      var valRow=dv({display:"flex",gap:"8px",alignItems:"flex-end",marginBottom:"8px"});
+      var vf=dv({flex:"1"});vf.appendChild(lbl(isIso?"Seconds held":"Reps achieved"));
+      var vinput=document.createElement("input");vinput.type="number";vinput.min="1";
+      vinput.placeholder=isIso?(curMod==="iso"?th.val+"s target":th.val+" reps"):th.val+" reps";
+      vinput.value=curVal;vinput.style.fontSize="16px";vinput.style.fontFamily=FH;
+      vinput.addEventListener("input",function(e){if(!D._wodVals)D._wodVals={};D._wodVals[catKey]=e.target.value;});
+      vf.appendChild(vinput);valRow.appendChild(vf);
+      var nf=dv({flex:"1"});nf.appendChild(lbl("Notes"));
+      var ninput=document.createElement("input");ninput.type="text";ninput.placeholder="form, feel...";ninput.value=(D._wodNotes&&D._wodNotes[catKey])||"";
+      ninput.addEventListener("input",function(e){if(!D._wodNotes)D._wodNotes={};D._wodNotes[catKey]=e.target.value;});
+      nf.appendChild(ninput);valRow.appendChild(nf);
+      c.appendChild(valRow);
       var brow=dv({display:"flex",gap:"8px"});
       if(allDone){brow.appendChild(tw("- complete -",{color:"#2a7a2a",fontStyle:"italic",padding:"8px 0",flex:"1",textAlign:"center"}));}
-      else{brow.appendChild(iBtn("[ LOG SET +1 ]",function(){
-        completed[catKey]=(completed[catKey]||0)+1;
-        logSets.push({id:Date.now()+Math.random(),category:catKey,exerciseId:currId,modifier:"std",reps:!isIso?th.val:null,seconds:isIso?th.val:null,notes:"WOD",ts:Date.now()});render();
-      },{primary:true,style:{flex:"1"}}));}
+      else{
+        var logMod=curMod||"std";var isIsoFinal=isIso||(logMod==="iso");
+        brow.appendChild(iBtn("[ LOG SET ]",function(){
+          var enteredVal=D._wodVals&&D._wodVals[catKey]?parseInt(D._wodVals[catKey]):null;
+          var logVal=enteredVal||th.val;
+          var shortfall=(!isIsoFinal&&enteredVal&&enteredVal<th.val)?(th.val-enteredVal):0;
+          completed[catKey]=(completed[catKey]||0)+1;
+          logSets.push({id:Date.now()+Math.random(),category:catKey,exerciseId:currId,modifier:logMod,reps:!isIsoFinal?logVal:null,seconds:isIsoFinal?logVal:null,notes:(D._wodNotes&&D._wodNotes[catKey])||"WOD",ts:Date.now()});
+          // If shortfall, auto-log eccentric sets to make up the difference
+          if(shortfall>0){
+            logSets.push({id:Date.now()+Math.random()+0.1,category:catKey,exerciseId:currId,modifier:"ecc",reps:shortfall,seconds:null,notes:"Eccentric top-up ("+logVal+"+"+shortfall+"ecc="+th.val+")",ts:Date.now()});
+          }
+          if(!D._wodVals)D._wodVals={};D._wodVals[catKey]="";
+          // Start rest timer
+          var restSecs=isIsoFinal?90:(logVal>=12?90:120);
+          startRest(restSecs,catKey);
+          render();
+        },{primary:true,style:{flex:"1"}}));
+      }
       if(doneCount>0)brow.appendChild(iBtn("Undo",function(){completed[catKey]=Math.max(0,(completed[catKey]||0)-1);logSets.pop();render();},{small:true}));
       c.appendChild(brow);wrap.appendChild(c);
     })(cats[ei]);
