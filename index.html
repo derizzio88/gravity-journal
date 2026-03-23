@@ -163,6 +163,163 @@ var OG={
   ]}
 };
 
+// ── EXERCISE REFERENCE URLS ──────────────────────────────────────────────────
+// Primary: ExRx.net (OG-endorsed). Fallback: YouTube search for exercises
+// not indexed on ExRx. Open in new tab — never navigate away from app.
+var EX_REF={
+  // Push / Planche
+  "std_pushup":    "https://exrx.net/Calisthenics/PushUp",
+  "diamond_pu":    "https://exrx.net/Calisthenics/ClosePushUp",
+  "rings_wide_pu": "https://www.youtube.com/results?search_query=rings+wide+push+up+tutorial",
+  "rings_pu":      "https://exrx.net/Calisthenics/RingsPushUp",
+  "rto_pu":        "https://www.youtube.com/results?search_query=rings+turned+out+push+up+RTO",
+  "rto_archer_pu": "https://www.youtube.com/results?search_query=RTO+archer+push+up+rings",
+  "pseudo_pu_40":  "https://www.youtube.com/results?search_query=pseudo+planche+push+up+tutorial",
+  "pseudo_pu_60":  "https://www.youtube.com/results?search_query=pseudo+planche+push+up+60+degree",
+  "frog_stand":    "https://exrx.net/Calisthenics/FrogStand",
+  "sa_frog_stand": "https://www.youtube.com/results?search_query=straight+arm+frog+stand+tutorial",
+  "tuck_planche":  "https://exrx.net/Calisthenics/TuckPlanche",
+  "adv_tuck_pl":   "https://exrx.net/Calisthenics/AdvancedTuckPlanche",
+  "tuck_pl_pu":    "https://www.youtube.com/results?search_query=tuck+planche+push+up+tutorial",
+  "straddle_pl":   "https://exrx.net/Calisthenics/StradPlanche",
+  "half_layout_pl":"https://www.youtube.com/results?search_query=half+layout+planche+tutorial",
+  "full_planche":  "https://exrx.net/Calisthenics/Planche",
+  "full_pl_pu":    "https://exrx.net/Calisthenics/PlanchePushUp",
+
+  // Pull / Front Lever
+  "ring_row_ecc":  "https://www.youtube.com/results?search_query=ring+row+eccentric+tutorial",
+  "ring_row":      "https://exrx.net/Calisthenics/RingsRow",
+  "wide_ring_row": "https://www.youtube.com/results?search_query=wide+ring+row+bodyweight",
+  "archer_row":    "https://www.youtube.com/results?search_query=archer+ring+row+tutorial",
+  "straddle_oar":  "https://www.youtube.com/results?search_query=straddle+one+arm+row+rings",
+  "one_arm_row":   "https://www.youtube.com/results?search_query=one+arm+ring+row+tutorial",
+  "jump_pullup":   "https://exrx.net/Calisthenics/JumpingPullUp",
+  "bar_pu_ecc":    "https://www.youtube.com/results?search_query=pull+up+eccentric+negative+tutorial",
+  "bar_pullup":    "https://exrx.net/Calisthenics/PullUp",
+  "lsit_pullup":   "https://exrx.net/Calisthenics/LSitPullUp",
+  "pullover":      "https://exrx.net/Calisthenics/Pullover",
+  "archer_pull":   "https://www.youtube.com/results?search_query=archer+pull+up+rings+tutorial",
+  "oac_ecc":       "https://www.youtube.com/results?search_query=one+arm+chin+up+eccentric+negative",
+  "one_arm_chin":  "https://exrx.net/Calisthenics/OneArmChinUp",
+  "tuck_fl":       "https://exrx.net/Calisthenics/TuckFrontLever",
+  "adv_tuck_fl":   "https://exrx.net/Calisthenics/AdvTuckFrontLever",
+  "straddle_fl":   "https://exrx.net/Calisthenics/StradFrontLever",
+  "full_fl":       "https://exrx.net/Calisthenics/FrontLever",
+  "tuck_fl_row":   "https://exrx.net/Calisthenics/TuckFrontLeverRow",
+  "straddle_fl_row":"https://exrx.net/Calisthenics/StradFrontLeverRow",
+
+  // Back Lever / Iron Cross
+  "german_hang":   "https://exrx.net/Calisthenics/GermanHang",
+  "skin_cat":      "https://exrx.net/Calisthenics/SkinTheCat",
+  "tuck_bl":       "https://exrx.net/Calisthenics/TuckBackLever",
+  "adv_tuck_bl":   "https://exrx.net/Calisthenics/AdvTuckBackLever",
+  "straddle_bl":   "https://exrx.net/Calisthenics/StradBackLever",
+  "full_bl":       "https://exrx.net/Calisthenics/BackLever",
+  "ic_prog":       "https://www.youtube.com/results?search_query=iron+cross+progressions+rings+tutorial",
+  "iron_cross":    "https://exrx.net/Calisthenics/IronCross",
+
+  // Handstand / Press
+  "wall_hs_1":     "https://exrx.net/Calisthenics/WallHandstand",
+  "pike_hs_pu":    "https://exrx.net/Calisthenics/PikePushUp",
+  "box_hs_pu":     "https://exrx.net/Calisthenics/BoxPikeHeadstandPushUp",
+  "wall_hs_pu_ecc":"https://www.youtube.com/results?search_query=wall+handstand+push+up+eccentric+negative",
+  "wall_hs_pu":    "https://exrx.net/Calisthenics/HandstandPushUp",
+  "free_hs":       "https://exrx.net/Calisthenics/Handstand",
+  "free_hs_pu":    "https://exrx.net/Calisthenics/FreestandingHandstandPushUp",
+  "straddle_press":"https://exrx.net/Calisthenics/StradPressHandstand",
+  "pike_press":    "https://exrx.net/Calisthenics/PikePressHandstand",
+  "one_arm_hs":    "https://exrx.net/Calisthenics/OneArmHandstand",
+
+  // L-Sit / Manna / Core
+  "tuck_lsit":     "https://exrx.net/Calisthenics/TuckLSit",
+  "one_leg_lsit":  "https://exrx.net/Calisthenics/OneFootLSit",
+  "lsit":          "https://exrx.net/Calisthenics/LSit",
+  "straddle_lsit": "https://exrx.net/Calisthenics/StradLSit",
+  "rto_lsit":      "https://www.youtube.com/results?search_query=RTO+L-sit+rings+turned+out",
+  "v_sit_90":      "https://exrx.net/Calisthenics/VSit",
+  "v_sit_adv":     "https://www.youtube.com/results?search_query=advanced+V-sit+gymnastics+tutorial",
+  "manna_prog":    "https://www.youtube.com/results?search_query=manna+progression+tutorial+gymnastics",
+  "manna":         "https://exrx.net/Calisthenics/Manna",
+  "ab_wheel_full": "https://exrx.net/Calisthenics/AbWheelRollout",
+  "dragon_flag":   "https://exrx.net/Calisthenics/DragonFlag",
+
+  // Dip / Muscle-up
+  "pb_jump_dip":   "https://www.youtube.com/results?search_query=parallel+bar+jumping+dip+tutorial",
+  "pb_dip_ecc":    "https://www.youtube.com/results?search_query=parallel+bar+dip+eccentric+negative",
+  "pb_dip":        "https://exrx.net/Calisthenics/Dip",
+  "lsit_dip":      "https://exrx.net/Calisthenics/LSitDip",
+  "rings_dip_ecc": "https://www.youtube.com/results?search_query=rings+dip+eccentric+negative",
+  "rings_dip":     "https://exrx.net/Calisthenics/RingsDip",
+  "rings_lsit_dip":"https://www.youtube.com/results?search_query=rings+L-sit+dip+tutorial",
+  "mu_neg":        "https://www.youtube.com/results?search_query=muscle+up+negative+eccentric+tutorial",
+  "kipping_mu":    "https://exrx.net/Calisthenics/KippingMuscleUp",
+  "strict_mu":     "https://exrx.net/Calisthenics/MuscleUp",
+  "wide_mu":       "https://www.youtube.com/results?search_query=wide+grip+no+false+grip+muscle+up",
+  "bar_mu":        "https://exrx.net/Calisthenics/BarMuscleUp",
+  "lsit_mu":       "https://www.youtube.com/results?search_query=L-sit+muscle+up+tutorial",
+  "one_arm_mu":    "https://www.youtube.com/results?search_query=one+arm+muscle+up+tutorial",
+
+  // Squat / Legs
+  "parallel_squat":"https://exrx.net/Calisthenics/SquatParallel",
+  "full_squat":    "https://exrx.net/Calisthenics/Squat",
+  "deep_stepup":   "https://exrx.net/Calisthenics/StepUp",
+  "pistol_squat":  "https://exrx.net/Calisthenics/PistolSquat",
+  "pistol_w5":     "https://www.youtube.com/results?search_query=weighted+pistol+squat+tutorial",
+  "pistol_w25":    "https://www.youtube.com/results?search_query=weighted+pistol+squat+advanced",
+  "nordic_curl":   "https://exrx.net/Calisthenics/NordicCurl",
+  "glute_ham":     "https://exrx.net/Calisthenics/GluteHamRaise",
+  "king_dl":       "https://www.youtube.com/results?search_query=king+deadlift+single+leg+tutorial",
+
+  // Elbow Lever / Flag
+  "two_arm_el":    "https://exrx.net/Calisthenics/ElbowLever",
+  "rings_two_el":  "https://www.youtube.com/results?search_query=rings+elbow+lever+tutorial",
+  "one_arm_el":    "https://exrx.net/Calisthenics/OneArmElbowLever",
+  "human_flag":    "https://exrx.net/Calisthenics/HumanFlag",
+
+  // Kettlebell
+  "kb_swing_2h":   "https://exrx.net/Calisthenics/TwoHandSwing",
+  "kb_deadlift":   "https://exrx.net/WeightExercises/GluteMaximus/KBDeadlift",
+  "kb_goblet":     "https://exrx.net/WeightExercises/Quadriceps/KBGobletSquat",
+  "kb_halo":       "https://exrx.net/WeightExercises/Deltoid/KBHalo",
+  "kb_swing_1h":   "https://exrx.net/Calisthenics/OneHandSwing",
+  "kb_clean":      "https://exrx.net/WeightExercises/OlympicLifts/KBClean",
+  "kb_row":        "https://exrx.net/WeightExercises/BackGeneral/KBRow",
+  "kb_press":      "https://exrx.net/WeightExercises/Deltoid/KBMilitaryPress",
+  "kb_rdl_1":      "https://exrx.net/WeightExercises/Hamstrings/KBSingleLegRDL",
+  "kb_push_press": "https://exrx.net/WeightExercises/Deltoid/KBPushPress",
+  "kb_thruster":   "https://www.youtube.com/results?search_query=kettlebell+thruster+tutorial",
+  "kb_tgu_partial":"https://www.youtube.com/results?search_query=partial+turkish+get+up+tutorial",
+  "kb_snatch":     "https://exrx.net/WeightExercises/OlympicLifts/KBSnatch",
+  "kb_tgu":        "https://exrx.net/WeightExercises/OlympicLifts/TurkishGetUp",
+  "kb_double_clean":"https://www.youtube.com/results?search_query=double+kettlebell+clean+tutorial",
+  "kb_double_press":"https://www.youtube.com/results?search_query=double+kettlebell+press+tutorial",
+  "kb_double_fsq": "https://www.youtube.com/results?search_query=double+kettlebell+front+squat",
+  "kb_long_cycle": "https://www.youtube.com/results?search_query=kettlebell+long+cycle+clean+jerk"
+};
+
+function exRefBtn(exId) {
+  var url = EX_REF[exId];
+  if (!url) return null;
+  var b = mk("a", {
+    fontFamily: FB,
+    fontSize: "9px",
+    color: Cb,
+    border: "1px solid " + Cb,
+    padding: "1px 5px",
+    borderRadius: "2px",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    display: "inline-block",
+    cursor: "pointer"
+  }, "[?]");
+  b.href = url;
+  b.target = "_blank";
+  b.rel = "noopener noreferrer";
+  // Prevent row selection on tap
+  b.addEventListener("click", function(e) { e.stopPropagation(); });
+  return b;
+}
+
 var KB_CIRCUITS=[
   {id:"kb_s",name:"Strength Circuit",rounds:4,rest:"90s",moves:["kb_swing_2h","kb_goblet","kb_press","kb_row"]},
   {id:"kb_c",name:"Cardio Finisher",rounds:3,rest:"60s",moves:["kb_swing_2h","kb_clean","kb_thruster","kb_swing_1h"]},
@@ -658,6 +815,7 @@ function renderWod(){
       var tl=dv({flex:"1"});var tnrow=dv({display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap",marginBottom:"2px"});
       tnrow.appendChild(hw(ex.name+(ex.p?" *":""),{fontSize:"13px",color:allDone?"#2a7a2a":Ci}));
       if(allDone)tnrow.appendChild(stamp("done","#2a7a2a"));
+      var wodRef=exRefBtn(currId);if(wodRef)tnrow.appendChild(wodRef);
       tl.appendChild(tnrow);
       tl.appendChild(tw(cat.label+" Lvl "+(ex.level||"?")+" "+(isIso?"ISO":"DYN"),{color:Cm,fontSize:"10px"}));
       trow.appendChild(tl);
@@ -773,6 +931,7 @@ function renderLog(){
       row.appendChild(mk("span",{flex:"1",fontSize:"12px",fontFamily:FB,color:ex.p?Cr:Ci},ex.name+(ex.p?" *":"")));
       row.appendChild(mk("span",{fontSize:"8px",color:ex.type==="iso"?Cb:Cr,fontFamily:FB},ex.type==="iso"?"ISO":"DYN"));
       if(r.ready)row.appendChild(stamp("advance",Cg));
+      var logRef=exRefBtn(ex.id);if(logRef)row.appendChild(logRef);
       row.addEventListener("click",function(){D._logExId=ex.id;D._logMod="std";render();});el2.appendChild(row);
     })(catData.progressions[i]);
   }
@@ -855,6 +1014,7 @@ function renderProgress(){
       trow.appendChild(mk("span",{fontSize:"8px",color:ex.type==="iso"?Cb:Cr,fontFamily:FB},ex.type==="iso"?"ISO":"DYN"));
       if(isCurr)trow.appendChild(stamp("current",catData.color));
       if(r.ready)trow.appendChild(stamp("advance",Cg));
+      var progRef=exRefBtn(ex.id);if(progRef)trow.appendChild(progRef);
       var setB=mk("button",{fontFamily:FB,fontSize:"9px",color:Cb,background:"none",border:"1px solid "+Cb,padding:"1px 5px",borderRadius:"2px",cursor:"pointer"},"[ SET ]");
       setB.addEventListener("click",(function(exId){return function(){D.progressions[setsCat]=exId;saveData(D);render();};})(ex.id));
       trow.appendChild(setB);c.appendChild(trow);
