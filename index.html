@@ -709,10 +709,12 @@ function loadData(){
       if(!d.rehab.current)d.rehab.current={};
       for(var rk in DEFAULT_REHAB_CURRENT){if(!d.rehab.current[rk])d.rehab.current[rk]=DEFAULT_REHAB_CURRENT[rk];}
       if(!d.rehab.log)d.rehab.log=[];
+      if(!d.martial)d.martial={log:[]};
+      if(!d.martial.log)d.martial.log=[];
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -1027,12 +1029,13 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",rehab:"Ankle / Foot Rehab",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
+  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
   else if(VIEW==="sprint")root.appendChild(renderSprint());
   else if(VIEW==="rehab")root.appendChild(renderRehab());
+  else if(VIEW==="martial")root.appendChild(renderMartial());
   else if(VIEW==="meals")root.appendChild(renderMeals());
   else if(VIEW==="progress")root.appendChild(renderProgress());
   else if(VIEW==="history")root.appendChild(renderHistory());
@@ -1041,7 +1044,7 @@ function render(){
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else root.appendChild(renderSettings());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"rehab",label:"REHAB",g:"[r]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"rehab",label:"REHAB",g:"[r]"},{id:"martial",label:"MARTIAL",g:"[ma]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -1843,6 +1846,82 @@ function renderBody(){
   return wrap;
 }
 
+
+function renderMartial(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+
+  // Weekly window: last 7 days inclusive of today
+  var now=new Date();
+  var weekAgo=new Date(now.getTime()-6*86400000);
+  var weekTotalMin=0,weekCount=0;
+  for(var i=0;i<D.martial.log.length;i++){
+    var entryDate=new Date(D.martial.log[i].date+"T00:00:00");
+    if(entryDate>=new Date(weekAgo.getFullYear()+"-"+("0"+(weekAgo.getMonth()+1)).slice(-2)+"-"+("0"+weekAgo.getDate()).slice(-2)+"T00:00:00")){
+      weekTotalMin+=D.martial.log[i].duration_min;
+      weekCount++;
+    }
+  }
+  var weekHrs=Math.round(weekTotalMin/60*10)/10;
+
+  // Summary card
+  var sc=card();
+  sc.appendChild(lbl("This Week"));
+  var stop=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline",marginTop:"4px"});
+  stop.appendChild(mk("div",{fontFamily:FH,fontSize:"28px",color:Ci},weekHrs+" hr"));
+  stop.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm},weekCount+" session"+(weekCount===1?"":"s")+" · "+weekTotalMin+" min"));
+  sc.appendChild(stop);
+  wrap.appendChild(sc);
+
+  // Quick-log buttons
+  function logSession(minutes){
+    var note=prompt("Note (optional):","");
+    var d=new Date();
+    D.martial.log.push({date:todayKey(),time:hmTime(d.getTime()),duration_min:minutes,notes:note||""});
+    saveData(D);render();
+  }
+  var oneBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"12px",letterSpacing:"0.2em",padding:"16px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer",marginBottom:"6px"},"+ LOG 1 HOUR CLASS");
+  oneBtn.addEventListener("click",function(){logSession(60);});
+  wrap.appendChild(oneBtn);
+
+  var twoBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"12px",letterSpacing:"0.2em",padding:"16px",background:Cr,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer",marginBottom:"6px"},"+ LOG 2 HOUR DAY (BOTH CLASSES)");
+  twoBtn.addEventListener("click",function(){logSession(120);});
+  wrap.appendChild(twoBtn);
+
+  var customBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"+ CUSTOM DURATION");
+  customBtn.addEventListener("click",function(){
+    var v=parseInt(prompt("Duration in minutes?","60"),10);
+    if(v&&v>0)logSession(v);
+  });
+  wrap.appendChild(customBtn);
+
+  // Recent sessions list (last 14 days)
+  var rc=card();
+  rc.appendChild(lbl("Recent Sessions"));
+  var any=false;
+  var cutoff=new Date(now.getTime()-13*86400000);
+  var cutoffKey=cutoff.getFullYear()+"-"+("0"+(cutoff.getMonth()+1)).slice(-2)+"-"+("0"+cutoff.getDate()).slice(-2);
+  for(var i=D.martial.log.length-1;i>=0;i--){
+    var L=D.martial.log[i];
+    if(L.date<cutoffKey)break;
+    any=true;
+    var row=dv({display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+    var ll=dv({});
+    ll.appendChild(mk("span",{color:Ci},L.date+(L.time?"  "+L.time:"")));
+    if(L.notes)ll.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginTop:"2px"},"\""+L.notes+"\""));
+    row.appendChild(ll);
+    var rr=dv({display:"flex",gap:"8px",alignItems:"center"});
+    rr.appendChild(mk("span",{color:Ci,fontWeight:"bold"},L.duration_min+" min"));
+    var delBtn=mk("button",{fontFamily:FB,fontSize:"9px",color:Cm,background:"transparent",border:"1px solid "+Cm,padding:"2px 6px",borderRadius:"2px",cursor:"pointer"},"×");
+    (function(idx){delBtn.addEventListener("click",function(){if(confirm("Delete this session?")){D.martial.log.splice(idx,1);saveData(D);render();}});})(i);
+    rr.appendChild(delBtn);
+    row.appendChild(rr);
+    rc.appendChild(row);
+  }
+  if(!any)rc.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No sessions in the last 14 days."));
+  wrap.appendChild(rc);
+
+  return wrap;
+}
 
 function renderRehab(){
   if(rehabPickerCat)return renderRehabPicker(rehabPickerCat);
