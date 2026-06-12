@@ -405,13 +405,223 @@ var SPRINT_SURFACES=["track","turf","grass","treadmill","road","hill","indoor"];
 var SPRINT_FATIGUE=["fresh","post-warmup","post-lift","post-run","race-day"];
 var SPRINT_DEFAULT_DIST={accel:20,max_v:60,fly:30,tempo:200,hill:40,resisted:40,hyrox:1000};
 
+// ── MEALS MODULE: pescatarian-first cookbook rotation ────────────────────────
+// REC[].ing carries g + oz where the cookbook provides both. STEPS holds
+// transcribed cooking method per recipe id. Macros are per-serving.
+var REC=[
+ {id:"salmon_ramen",name:"Creamy Spicy Salmon Ramen Noodles",book:"V4",page:180,svg:4,kcal:566,p:44,c:40,f:23,
+  protein:{type:"salmon",raw_g:200,raw_oz:7.0},diet:["pesc","dairyfree_ok"],
+  note:"Store salmon and noodles separately for reheat.",
+  ing:[{n:"Raw Skinless Salmon Fillets",g:800,oz:28},{n:"Light Coconut Milk",g:500,oz:18},{n:"Uncooked Egg Noodles",g:220,oz:8,swap:"ramen/chukamen, discard seasoning"},{n:"Green Onion/Scallion (chopped)",g:80,oz:3},{n:"Chilli Garlic Paste",g:20,oz:1},{n:"Light Soy Sauce",g:20,oz:1},{n:"Dark Soy Sauce",g:15,oz:0.7},{n:"Garlic (finely chopped)",g:15,oz:0.5},{n:"Garlic Powder",tsp:1.5},{n:"Smoked Paprika",tsp:1.5},{n:"Paprika",tsp:1},{n:"Salt",tsp:2.5},{n:"Black Pepper",tsp:2.5},{n:"Olive Oil (cooking)",tsp:2}]},
+ {id:"orange_pepper_shrimp",name:"Orange Pepper Shrimp Rice Bowls",book:"V4",page:86,svg:5,kcal:445,p:51,c:55,f:6,
+  protein:{type:"shrimp",raw_g:176,raw_oz:6.2},diet:["pesc","dairyfree_ok"],
+  note:"Originally chicken thigh — subbed shrimp. Marinate ≤20 min (citrus 'cooks' shrimp). Roast 8–10 min @ 400°F or sear 2 min/side.",
+  ing:[{n:"Raw Peeled/Deveined Shrimp",g:880,oz:31,swap_from:"1100g chicken thigh"},{n:"Uncooked Basmati Rice",g:220,oz:8},{n:"Mini Cucumbers (sliced)",g:250,oz:8.8},{n:"Carrots (grated)",g:120,oz:4.2},{n:"Red Bell Pepper (chopped)",g:100,oz:3.5},{n:"Red Onion (sliced)",g:100,oz:3.5},{n:"Green Onion/Scallion",g:50,oz:1.7},{n:"Sesame Seeds",g:25,oz:1},{n:"Honey",g:45,oz:1.6},{n:"Sriracha",g:25,oz:1},{n:"Rice Vinegar",g:25,oz:1},{n:"Light Soy Sauce",g:25,oz:1},{n:"Large Orange (juice+zest)",ea:1},{n:"Dairy-Free Butter (or olive oil)",g:20,oz:0.7},{n:"Garlic (chopped)",g:30,oz:1.1},{n:"Fresh Parsley",tbsp:1.5}]},
+ {id:"shrimp_fried_rice_hp",name:"High Protein Shrimp Fried Rice",book:"Jalal",page:54,svg:2,kcal:425,p:55,c:46,f:6,
+  protein:{type:"shrimp",raw_g:150,raw_oz:5.3},diet:["pesc","dairyfree_ok"],
+  note:"Originally chicken breast — subbed shrimp. Cook shrimp 2 min/side, remove, add back at end.",
+  ing:[{n:"Raw Peeled/Deveined Shrimp",g:300,oz:10.6,swap_from:"300g chicken breast"},{n:"Cooked Basmati Rice",g:280,oz:9.8},{n:"Mixed Veg (carrots/peas/corn)",g:120,oz:4.2},{n:"Whole Eggs",ea:2},{n:"Egg Whites",ea:4},{n:"Green Onion (chopped)",cup:0.5},{n:"Light Soy Sauce",tbsp:2},{n:"Sesame Oil",tsp:1},{n:"Olive Oil",tsp:1},{n:"Garlic Powder",tsp:1},{n:"Onion Powder",tsp:1},{n:"Black Pepper",tsp:1}]},
+ {id:"garlic_shrimp_fried_rice",name:"Garlic Shrimp Fried Rice",book:"V4",page:158,svg:4,kcal:503,p:46,c:47,f:13,
+  protein:{type:"shrimp",raw_g:200,raw_oz:7.0},diet:["pesc","dairy_ok"],
+  ing:[{n:"Raw Argentinian Shrimp",g:800,oz:28},{n:"Uncooked White Rice",g:200,oz:7},{n:"Frozen Carrots",g:100,oz:3.5},{n:"Frozen Peas",g:100,oz:3.5},{n:"Whole Eggs",ea:4},{n:"Green Onion (chopped)",g:80,oz:2.8},{n:"50% Fat Mayo (yum yum sauce)",g:80,oz:2.8},{n:"Ketchup",g:25,oz:1},{n:"Sriracha",g:25,oz:1},{n:"Rice Vinegar",g:25,oz:1},{n:"Oyster Sauce",g:30,oz:1},{n:"Light Soy Sauce",g:45,oz:1.5},{n:"Dark Soy Sauce",g:30,oz:1},{n:"Reduced Fat Butter (sub DF)",g:30,oz:1},{n:"Garlic (chopped)",g:15,oz:0.5}]},
+ {id:"shrimp_linguine",name:"Creamy Lemon Garlic Shrimp Linguine",book:"V4",page:162,svg:4,kcal:490,p:51,c:45,f:11,
+  protein:{type:"shrimp",raw_g:200,raw_oz:7.0},diet:["pesc","dairy_only"],
+  note:"Dairy-heavy (cream cheese + parm). Skip if strict DF, or sub coconut cream + nutritional yeast.",
+  ing:[{n:"Raw Argentinian Shrimp",g:800,oz:28},{n:"Uncooked Linguine",g:230,oz:8.1},{n:"1% Milk",g:250,oz:8.8},{n:"50% Fat Cream Cheese",g:120,oz:4.2},{n:"Grated Parmigiano Reggiano",g:40,oz:1.4},{n:"Reduced Fat Butter",g:40,oz:1.4},{n:"Spinach",g:50,oz:1.7},{n:"Minced Garlic",g:20,oz:0.7},{n:"Lemon (juiced)",ea:1.25}]},
+ {id:"crispy_salmon_fr",name:"Crispy Salmon Fried Rice",book:"Jalal",page:91,svg:4,kcal:531,p:45,c:44,f:19,
+  protein:{type:"salmon",raw_g:175,raw_oz:6.2},diet:["pesc","dairyfree_ok"],
+  ing:[{n:"Raw Skinless Salmon (cubed)",g:700,oz:24.7},{n:"Leftover Cooked Rice",g:480,oz:17},{n:"Mixed Vegetables",g:150,oz:5.3},{n:"Large Eggs",ea:2},{n:"Cornflour",g:20,oz:1},{n:"Light Soy Sauce",g:40,oz:2},{n:"Oyster Sauce",g:20,oz:1},{n:"Light Mayo (sauce)",g:40,oz:1.4},{n:"Sriracha",g:20,oz:0.7},{n:"Lemon (juiced)",ea:0.5}]},
+ {id:"salmon_power_bowl",name:"Salmon Power Bowl",book:"Jalal",page:93,svg:2,kcal:594,p:42,c:48,f:26,
+  protein:{type:"salmon",raw_g:188,raw_oz:6.6},diet:["pesc","dairyfree_ok"],
+  ing:[{n:"Raw Skinless Salmon (cubed)",g:375,oz:13.2},{n:"Cooked Jasmine Rice",g:200,oz:7.1},{n:"Cucumber (sliced)",ea:0.5},{n:"Carrot (sliced)",ea:1},{n:"Red Onion (sliced)",ea:0.5},{n:"Avocado",g:100,oz:3.5},{n:"Honey",g:18,oz:0.6},{n:"Light Soy Sauce",tbsp:2},{n:"Dark Soy Sauce",tbsp:1},{n:"Rice Vinegar",tsp:1},{n:"Sriracha (mayo)",tsp:2},{n:"Light Mayo",tbsp:2},{n:"Lemon (juiced)",ea:1}]},
+ {id:"honey_salmon_rice",name:"Honey Salmon & Rice",book:"Jalal",page:97,svg:2,kcal:615,p:57,c:46,f:20,
+  protein:{type:"salmon",raw_g:250,raw_oz:8.8},diet:["pesc","dairyfree_ok"],note:"Use skinless for lower fat.",
+  ing:[{n:"Salmon Fillet",g:500,oz:17.6},{n:"Cooked Jasmine Rice",g:220,oz:7.8},{n:"Broccoli",g:200,oz:7},{n:"Asparagus",g:150,oz:5.3},{n:"Dijon Mustard",tbsp:1},{n:"Honey",tsp:1},{n:"Garlic Cloves (crushed)",ea:4},{n:"Lemon (juiced)",ea:0.5}]},
+ {id:"honey_garlic_shrimp_stir_fry",name:"Honey Garlic Shrimp Stir Fry",book:"Jalal",page:94,svg:2,kcal:436,p:46,c:54,f:4,
+  protein:{type:"shrimp",raw_g:240,raw_oz:8.5},diet:["pesc","dairyfree_ok"],
+  ing:[{n:"Raw Shrimp",g:480,oz:16.9},{n:"Cooked Basmati Rice",g:240,oz:8.4},{n:"Red Onion (sliced)",ea:1},{n:"Red Bell Pepper",ea:0.5},{n:"Yellow Bell Pepper",ea:0.5},{n:"Broccoli",g:100,oz:3.5},{n:"Garlic Cloves",ea:6},{n:"Honey",tbsp:2},{n:"Dark Soy Sauce",tbsp:1},{n:"Light Soy Sauce",tbsp:1},{n:"Smoked Paprika",tsp:1},{n:"Sesame Seeds",tsp:1},{n:"Lemon (juiced)",ea:0.5}]},
+ {id:"creamy_shrimp_pasta",name:"Creamy Shrimp Pasta",book:"Jalal",page:95,svg:2,kcal:490,p:55,c:45,f:10,
+  protein:{type:"shrimp",raw_g:200,raw_oz:7.0},diet:["pesc","dairy_only"],
+  ing:[{n:"Raw Shrimp",g:400,oz:14.1},{n:"Uncooked Linguine",g:125,oz:4.6},{n:"Low Fat Milk",g:165,oz:5.8},{n:"Light Cream Cheese",g:100,oz:3.5},{n:"Grated Parmesan",g:20,oz:0.7},{n:"Spinach",g:50,oz:1.7},{n:"Garlic Cloves",ea:4},{n:"Lemon (juiced)",ea:0.5}]},
+ {id:"orange_pepper_chicken",name:"Orange Pepper Chicken Rice Bowls",book:"V4",page:86,svg:5,kcal:518,p:49,c:55,f:12,
+  protein:{type:"chicken",raw_g:220,raw_oz:7.8},diet:["chick","dairyfree_ok"],
+  note:"Original (chicken thigh) version of the orange_pepper_shrimp recipe.",
+  ing:[{n:"Raw Chicken Thighs",g:1100,oz:39},{n:"Uncooked Basmati Rice",g:220,oz:8},{n:"Mini Cucumbers",g:250,oz:8.8},{n:"Carrots (grated)",g:120,oz:4.2},{n:"Red Bell Pepper",g:100,oz:3.5},{n:"Red Onion",g:100,oz:3.5},{n:"Green Onion",g:50,oz:1.7},{n:"Sesame Seeds",g:25,oz:1},{n:"Honey",g:45,oz:1.6},{n:"Sriracha",g:25,oz:1},{n:"Light Soy Sauce",g:25,oz:1},{n:"Large Orange",ea:1}]}
+];
+var STEPS={
+ salmon_ramen:["Slice the skinless salmon into equal fillets. Season both sides with garlic powder, smoked paprika, salt, and black pepper. Rub spices in evenly.","Heat a pan over medium heat with a little olive oil. Cook salmon 4–5 minutes per side until golden brown and seared. Set aside, keep warm.","Meanwhile, cook noodles per package or boil 5 minutes until slightly underdone (they'll finish in the sauce). Drain and rinse under cold water.","In the same pan over medium-low heat, sauté chopped garlic 2 minutes. Add chili garlic paste and light coconut milk; season with salt, black pepper, paprika. Simmer 4–5 minutes until slightly thickened.","Add cooked noodles, chopped green onion, and light + dark soy sauce. Mix gently and simmer 3–4 minutes to thicken further.","Divide noodles into 4 portions, top with seared salmon. STORE SALMON AND NOODLES SEPARATELY for reheating."],
+ orange_pepper_shrimp:["In a large bowl, season peeled/deveined shrimp with salt, black pepper, garlic powder. Add honey, sriracha, fresh orange juice + zest, and light soy sauce. Mix to fully coat.","Marinate ≤20 MINUTES — citrus will 'ceviche' shrimp beyond that.","Slice cucumbers, red onion, carrots, bell pepper, green onion. Add sesame seeds, drizzle honey + rice vinegar, mix. Store in separate containers, refrigerate.","Bring salted water to boil. Cook rinsed basmati rice 8–10 minutes until tender. Drain.","Line sheet pan with parchment, spread shrimp single-layer. Add extra orange juice/zest + garlic powder + pepper on top. Roast 8–10 minutes at 400°F / 200°C OR sear 2 min/side.","Melt dairy-free butter in a pan, sauté chopped garlic 4 minutes. Fold in cooked rice, parsley, salt, chili flakes.","Plate rice + shrimp; keep cucumber salad in its own container — combine at meal time for max crunch."],
+ shrimp_fried_rice_hp:["Marinate shrimp with olive oil, garlic powder, onion powder, black pepper, and soy sauce. Toss to coat.","Heat pan on high, spray with oil. Cook shrimp 2 minutes per side until pink. Remove and set aside.","Same pan, medium heat. Add mixed vegetables + green onion. Cook 2–3 minutes. Push to one side. Crack in 1 whole egg + 2 whites, scramble, then mix.","Add cooked basmati rice. Return shrimp at the end so they don't overcook.","Drizzle extra soy sauce + sesame oil; final mix and serve."],
+ garlic_shrimp_fried_rice:["Wash and devein shrimp. Marinate with soy sauce, black pepper, garlic powder, onion powder, chili flakes.","Make yum yum sauce: combine mayo, ketchup, sriracha, rice vinegar, ginger powder, paprika until smooth.","Heat pan medium with butter. Cook marinated shrimp 1–2 min/side until golden. Set aside.","Same pan: sauté chopped garlic + green onion 2 minutes. Add peas + carrots, cook 2 more minutes.","Push vegetables to one side, add whisked eggs, stir until scrambled. Combine.","Add day-old rice, extra soy sauces, oyster sauce, dab of butter. Toss well, then return shrimp + green onion.","Final toss, divide into 4 servings. Drizzle yum yum sauce when serving."],
+ shrimp_linguine:["Marinate shrimp: mix with minced garlic, Italian herbs, chili flakes, smoked paprika, salt, lemon juice, olive oil.","Boil linguine 7–8 minutes until al dente. RESERVE PASTA WATER, then drain.","Heat pan medium with butter. Sauté shrimp 2 min/side until golden. Lower heat, add more butter + parsley + lemon. Toss, then remove shrimp.","Same pan, low heat: combine milk, cream cheese, parmesan, extra seasoning, reserved pasta water. Stir continuously until creamy.","Add cooked pasta + spinach + shrimp back + extra parsley + another squeeze of lemon. Toss. Top with parmesan."],
+ crispy_salmon_fr:["Cube skinless salmon. Season with garlic powder, onion powder, paprika, pepper, soy sauce, and cornflour. Mix to coat evenly.","Heat pan medium with cooking spray. Cook salmon 2–3 minutes until golden and crispy — in batches if needed. Set aside.","Same pan: add mixed vegetables and cook a couple minutes. Push aside, crack in eggs, stir until scrambled. Mix together.","Add cooked rice with extra soy sauce and oyster sauce. Stir to combine and heat through.","Add crispy salmon back in. Top with spicy lemon mayo (mayo + sriracha + lemon)."],
+ salmon_power_bowl:["Cube skinless salmon. Season with garlic, paprika/chili flakes, light + dark soy sauce, honey, lemon juice, oil.","Thinly slice red onion + carrot. Make cucumber salad: cucumber + soy sauce + garlic + chili flakes + rice vinegar. Let marinate.","Rinse and cook jasmine rice until fluffy.","Sear salmon 2–3 minutes per side until golden and slightly crisp at edges.","Slice avocado. Mix spicy lemon mayo (mayo + sriracha + lemon).","Assemble: rice + salmon + cucumber salad + onion + carrot + avocado. Drizzle mayo, top with sesame and green onion."],
+ honey_salmon_rice:["Mix marinade: dijon, crushed garlic, lemon juice, paprika, dried parsley, chili flakes, salt, pepper, honey.","Preheat oven 220°C / 430°F. Line tray with parchment, place salmon, spoon marinade over each piece.","Switch to broil. Broil 6–10 minutes depending on thickness — watch closely.","Meanwhile, stir-fry or roast broccoli + asparagus seasoned with salt, pepper, garlic powder, lemon.","Plate salmon + veggies + 100–120g cooked jasmine rice per serving."],
+ honey_garlic_shrimp_stir_fry:["Season shrimp with minced garlic, smoked paprika, pepper, chili flakes, honey, lemon, dark soy. Marinate briefly.","Thinly slice onion, peppers, broccoli.","Heat pan medium with oil. Cook shrimp ~2 min/side until golden. Remove.","Same pan: cook sliced veggies 3–4 minutes until softening.","Push veggies aside, add more garlic + honey + soy in the middle. Let bubble and caramelize 1 minute, then mix.","Add cooked basmati rice, return shrimp, toss, sesame seeds."],
+ creamy_shrimp_pasta:["Rinse + pat shrimp dry. Marinate with garlic, Italian herbs, paprika, salt, pepper, chili flakes, lemon.","Sear shrimp 3–4 minutes (flip halfway). Remove.","Same pan low heat: milk + cream cheese + parmesan + herbs + garlic powder + pasta water. Stir until creamy.","Add spinach + cooked pasta + shrimp. Toss until spinach wilts.","Garnish with parmesan/herbs. Serve immediately."],
+ orange_pepper_chicken:["Trim excess fat from chicken thighs. Season with salt, pepper, garlic powder. Add honey, sriracha, orange juice + zest, soy sauce. Mix thoroughly — color should change. Marinate at least 30 min (a few hours better).","Slice salad veggies (cucumber, red onion, carrots, bell pepper, green onion), add sesame seeds, drizzle honey + rice vinegar. Mix, refrigerate.","Boil basmati rice 8–10 minutes. Drain.","Line sheet pan, spread chicken single-layer, add extra orange juice/zest + garlic powder + pepper on top. Air fry or oven bake 25–27 minutes @ 400°F / 200°C until golden and sizzling. Broil 2–3 minutes at end for crust.","Melt butter medium-low, add chopped garlic, cook 4 minutes. Fold cooked rice in, add parsley + salt + chili flakes.","Slice chicken into cubes, mix back with sheet pan juices (this IS the pan sauce — don't skip). Plate with garlic rice + cucumber salad."]
+};
+function recById(id){for(var i=0;i<REC.length;i++){if(REC[i].id===id)return REC[i];}return null;}
+
+// Macro engine: Mifflin-St Jeor → TDEE → cut → P/F/C → per-meal split
+function computeMealTargets(p){
+  var kg=p.weight_kg||(p.weight_lb*0.4536);
+  var cm=p.height_cm||(p.height_in*2.54);
+  var bmr=(p.sex==="F")?(10*kg+6.25*cm-5*p.age-161):(10*kg+6.25*cm-5*p.age+5);
+  var tdee=bmr*(p.activity||1.55);
+  var kcal=Math.round(tdee-(p.deficit_kcal||0));
+  var protein_g=Math.round(p.weight_lb*(p.protein_g_per_lb||1.0));
+  var fat_g=Math.round(p.weight_lb*(p.fat_g_per_lb||0.4));
+  var carb_kcal=kcal-protein_g*4-fat_g*9;if(carb_kcal<0)carb_kcal=0;
+  var carb_g=Math.round(carb_kcal/4);
+  var lbm_kg=kg*(1-(p.bf_pct||0)/100);
+  var target_w=lbm_kg/(1-(p.target_bf_pct||8)/100);
+  return{bmr:Math.round(bmr),tdee:Math.round(tdee),kcal:kcal,p:protein_g,c:carb_g,f:fat_g,
+    lbm_kg:Math.round(lbm_kg*10)/10,lbm_lb:Math.round(lbm_kg*2.2046*10)/10,
+    target_weight_kg:Math.round(target_w*10)/10,target_weight_lb:Math.round(target_w*2.2046*10)/10,
+    fat_to_lose_lb:Math.round((kg-target_w)*2.2046*10)/10};
+}
+function splitMacros(t,n){if(n<1)n=1;return{kcal:Math.round(t.kcal/n),p:Math.round(t.p/n),c:Math.round(t.c/n),f:Math.round(t.f/n)};}
+function scaleForMealKcal(rec,target_kcal){return Math.round((target_kcal/rec.kcal)*100)/100;}
+
+function gToOz(g){return Math.round(g/28.35*10)/10;}
+function ozToG(oz){return Math.round(oz*28.35);}
+function isoDate(d){var y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();return y+"-"+(m<10?"0":"")+m+"-"+(day<10?"0":"")+day;}
+function hmTime(ts){var d=new Date(ts),h=d.getHours(),m=d.getMinutes();return(h<10?"0":"")+h+":"+(m<10?"0":"")+m;}
+function todayKey(){return isoDate(new Date());}
+
+// Grocery list — section classification tuned to HEB Rockwall + Costco Rockwall
+var STORE_SECTIONS=[
+  ["Costco · Bulk Proteins",/salmon|shrimp|chicken (breast|thigh)|raw chicken|tuna|egg whites|whole eggs|large eggs/i],
+  ["Costco · Pantry & Frozen",/basmati rice|jasmine rice|olive oil|frozen|mixed veg/i],
+  ["HEB · Produce",/cucumber|bell pepper|red onion|red pepper|yellow pepper|carrot|garlic clove|garlic\b|ginger|parsley|coriander|cilantro|orange|lemon|lime|broccoli|asparagus|avocado|tomato|spinach|mango|blueberr|apple|edamame|lettuce|scallion|green onion|fresh garlic/i],
+  ["HEB · Asian & Sauces",/coconut milk|ramen|noodle|linguine|pasta|soy sauce|sriracha|chili garlic|rice vinegar|sesame oil|sesame seed|oyster sauce|hoisin|fish sauce|ketchup|mayo|dijon|mustard|honey|bbq|buffalo|cornflour|cornstarch/i],
+  ["HEB · Dairy & Refrigerated",/cream cheese|parmesan|parmigiano|milk|cheddar|mozzarella|yogurt|yoghurt|butter|cream|feta/i],
+  ["HEB · Spices",/garlic powder|onion powder|smoked paprika|paprika|italian herbs|chili flakes|chilli flakes|cumin|turmeric|oregano|dried parsley|nutmeg|salt|black pepper|kosher salt|red chili|cinnamon/i],
+  ["HEB · Other",/./i]
+];
+function classifyIngredient(name){for(var i=0;i<STORE_SECTIONS.length;i++){if(STORE_SECTIONS[i][1].test(name))return STORE_SECTIONS[i][0];}return"HEB · Other";}
+function aggregatePicks(picks){
+  var agg={};
+  for(var i=0;i<picks.length;i++){
+    var rec=recById(picks[i].recipe_id);if(!rec)continue;
+    var scale=picks[i].total_servings/rec.svg;
+    for(var j=0;j<rec.ing.length;j++){
+      var it=rec.ing[j],key=it.n;
+      if(!agg[key])agg[key]={n:it.n,g:0,oz:0,ea:0,tsp:0,tbsp:0,cup:0,notes:[]};
+      if(it.g)agg[key].g+=it.g*scale;
+      if(it.oz&&!it.g)agg[key].oz+=it.oz*scale;
+      if(it.ea)agg[key].ea+=it.ea*scale;
+      if(it.tsp)agg[key].tsp+=it.tsp*scale;
+      if(it.tbsp)agg[key].tbsp+=it.tbsp*scale;
+      if(it.cup)agg[key].cup+=it.cup*scale;
+      if(it.swap)agg[key].notes.push(it.swap);
+      if(it.swap_from)agg[key].notes.push("subbed for: "+it.swap_from);
+    }
+  }
+  return agg;
+}
+function groupBySection(agg){
+  var groups={};
+  for(var k in agg){var sec=classifyIngredient(agg[k].n);if(!groups[sec])groups[sec]=[];groups[sec].push(agg[k]);}
+  return groups;
+}
+function buildGroceryList(picks){
+  var agg=aggregatePicks(picks);
+  var groups=groupBySection(agg);
+  var lines=[];
+  lines.push("# Grocery List — Gravity Journal");
+  lines.push("");
+  lines.push("**Date:** "+isoDate(new Date()));
+  var totalSvg=0;for(var i=0;i<picks.length;i++)totalSvg+=picks[i].total_servings;
+  lines.push("**Total meals:** "+totalSvg+" across "+picks.length+" recipes");
+  lines.push("");
+  lines.push("## Recipes & Scaling");
+  lines.push("");
+  lines.push("| Recipe | Source | Base | Target | Scale |");
+  lines.push("|---|---|---|---|---|");
+  for(var i=0;i<picks.length;i++){
+    var r=recById(picks[i].recipe_id);
+    var sc=Math.round(picks[i].total_servings/r.svg*10)/10;
+    lines.push("| "+r.name+" | "+r.book+" p."+r.page+" | "+r.svg+" | "+picks[i].total_servings+" | ×"+sc+" |");
+  }
+  lines.push("");
+  for(var s=0;s<STORE_SECTIONS.length;s++){
+    var sec=STORE_SECTIONS[s][0];
+    if(!groups[sec]||!groups[sec].length)continue;
+    lines.push("## "+sec);
+    lines.push("");
+    lines.push("| Item | oz | g | Count | Notes |");
+    lines.push("|---|---|---|---|---|");
+    groups[sec].sort(function(a,b){return a.n.localeCompare(b.n);});
+    for(var i=0;i<groups[sec].length;i++){
+      var a=groups[sec][i];
+      var g=a.g?Math.round(a.g):(a.oz?ozToG(a.oz):0);
+      var oz=g?gToOz(g):(a.oz?Math.round(a.oz*10)/10:0);
+      var ct=[];
+      if(a.ea)ct.push(Math.round(a.ea*10)/10+" each");
+      if(a.tsp)ct.push(Math.round(a.tsp*10)/10+" tsp");
+      if(a.tbsp)ct.push(Math.round(a.tbsp*10)/10+" Tbsp");
+      if(a.cup)ct.push(Math.round(a.cup*10)/10+" cup");
+      lines.push("| "+a.n+" | "+(oz||"")+" | "+(g||"")+" | "+ct.join(", ")+" | "+a.notes.join("; ")+" |");
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+function buildPlainList(picks){
+  var agg=aggregatePicks(picks);
+  var groups=groupBySection(agg);
+  var lines=[];
+  for(var s=0;s<STORE_SECTIONS.length;s++){
+    var sec=STORE_SECTIONS[s][0];
+    if(!groups[sec]||!groups[sec].length)continue;
+    lines.push("=== "+sec.toUpperCase()+" ===");
+    groups[sec].sort(function(a,b){return a.n.localeCompare(b.n);});
+    for(var i=0;i<groups[sec].length;i++){
+      var a=groups[sec][i];
+      var g=a.g?Math.round(a.g):(a.oz?ozToG(a.oz):0);
+      var oz=g?gToOz(g):0;
+      var qty="";
+      if(g)qty=oz+" oz / "+g+" g";
+      else if(a.ea)qty=Math.round(a.ea*10)/10+" ea";
+      else if(a.tsp)qty=Math.round(a.tsp*10)/10+" tsp";
+      else if(a.tbsp)qty=Math.round(a.tbsp*10)/10+" Tbsp";
+      else if(a.cup)qty=Math.round(a.cup*10)/10+" cup";
+      lines.push("[ ] "+a.n+"  —  "+qty);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
 var KEY="gravity_og_v4";
+var DEFAULT_MEALS_PROFILE={weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12};
 function loadData(){
   try{
     var r=localStorage.getItem(KEY);
-    if(r){var d=JSON.parse(r);if(!d.settings)d.settings={};if(!d.sessions)d.sessions=[];if(!d.progressions)d.progressions={};if(!d.settings.split)d.settings.split="fullbody";if(!d.settings.sets)d.settings.sets=3;if(!d.settings.repScheme)d.settings.repScheme="failure";if(!d.sprint)d.sprint={sessions:[],prs:{}};if(!d.sprint.sessions)d.sprint.sessions=[];if(!d.sprint.prs)d.sprint.prs={};return d;}
+    if(r){var d=JSON.parse(r);
+      if(!d.settings)d.settings={};
+      if(!d.sessions)d.sessions=[];
+      if(!d.progressions)d.progressions={};
+      if(!d.settings.split)d.settings.split="fullbody";
+      if(!d.settings.sets)d.settings.sets=3;
+      if(!d.settings.repScheme)d.settings.repScheme="failure";
+      if(!d.sprint)d.sprint={sessions:[],prs:{}};
+      if(!d.sprint.sessions)d.sprint.sessions=[];
+      if(!d.sprint.prs)d.sprint.prs={};
+      if(!d.meals)d.meals={profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]};
+      if(!d.meals.profile)d.meals.profile=DEFAULT_MEALS_PROFILE;
+      for(var pk in DEFAULT_MEALS_PROFILE){if(!(pk in d.meals.profile))d.meals.profile[pk]=DEFAULT_MEALS_PROFILE[pk];}
+      if(!d.meals.rotation)d.meals.rotation=[];
+      if(!d.meals.meals_per_window)d.meals.meals_per_window=3;
+      if(!d.meals.prep_servings)d.meals.prep_servings=20;
+      if(!d.meals["if"])d.meals["if"]={};
+      if(!d.meals.log)d.meals.log=[];
+      return d;
+    }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -475,6 +685,7 @@ function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.n
 
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
+var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -724,11 +935,12 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
+  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
   else if(VIEW==="sprint")root.appendChild(renderSprint());
+  else if(VIEW==="meals")root.appendChild(renderMeals());
   else if(VIEW==="progress")root.appendChild(renderProgress());
   else if(VIEW==="history")root.appendChild(renderHistory());
   else if(VIEW==="body")root.appendChild(renderBody());
@@ -736,7 +948,7 @@ function render(){
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else root.appendChild(renderSettings());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -1538,6 +1750,335 @@ function renderBody(){
   return wrap;
 }
 
+
+function renderMeals(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+
+  // Recipe detail takes over the whole view
+  if(mealsRecipeId){wrap.appendChild(renderRecipeDetail(mealsRecipeId));return wrap;}
+
+  // Sub-nav pill bar
+  var subnav=dv({display:"flex",gap:"4px",marginBottom:"4px",flexWrap:"wrap"});
+  var subs=[["today","TODAY"],["rotate","ROTATE"],["plan","PLAN"]];
+  for(var i=0;i<subs.length;i++){
+    (function(sub){
+      var active=mealsSub===sub[0];
+      var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"5px 14px",borderRadius:"2px",cursor:"pointer"},sub[1]);
+      b.addEventListener("click",function(){mealsSub=sub[0];render();});
+      subnav.appendChild(b);
+    })(subs[i]);
+  }
+  wrap.appendChild(subnav);
+
+  if(mealsSub==="today")wrap.appendChild(renderMealsToday());
+  else if(mealsSub==="rotate")wrap.appendChild(renderMealsRotate());
+  else if(mealsSub==="plan")wrap.appendChild(renderMealsPlan());
+  return wrap;
+}
+
+function macroBar(label,cur,tgt,unit,color){
+  var pct=tgt>0?Math.min(100,Math.round(cur/tgt*100)):0;
+  var over=cur>tgt*1.05;
+  var w=dv({margin:"4px 0"});
+  var top=dv({display:"flex",justifyContent:"space-between",fontFamily:FB,fontSize:"10px"});
+  top.appendChild(mk("span",{color:Ci},label));
+  top.appendChild(mk("span",{color:Ci},Math.round(cur)+" / "+tgt+" "+unit));
+  w.appendChild(top);
+  var bar=dv({height:"6px",background:Cl,position:"relative",overflow:"hidden",marginTop:"2px"});
+  bar.appendChild(dv({height:"100%",width:pct+"%",background:over?Cr:color}));
+  w.appendChild(bar);
+  return w;
+}
+function macroGrid(vals,labels){
+  var g=dv({display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"4px",textAlign:"center"});
+  for(var i=0;i<4;i++){
+    var box=dv({padding:"6px 2px",background:Cy,border:"1px solid "+Cm});
+    box.appendChild(mk("div",{fontFamily:FH,fontSize:"18px",color:Ci},String(vals[i])));
+    box.appendChild(mk("div",{fontFamily:FB,fontSize:"8px",letterSpacing:"0.1em",color:Cm},labels[i]));
+    g.appendChild(box);
+  }
+  return g;
+}
+
+function renderMealsToday(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var p=D.meals.profile;
+  var t=computeMealTargets(p);
+  var per=splitMacros(t,D.meals.meals_per_window);
+  var today=todayKey();
+  var ifday=D.meals["if"][today]||{};
+
+  // Today's consumed
+  var sum={kcal:0,p:0,c:0,f:0};
+  for(var i=0;i<D.meals.log.length;i++){
+    if(D.meals.log[i].date===today){var L=D.meals.log[i];sum.kcal+=L.kcal;sum.p+=L.p;sum.c+=L.c;sum.f+=L.f;}
+  }
+
+  // IF window block
+  var inWindow=ifday.start_ts&&!ifday.end_ts;
+  var ifBox=dv({padding:"14px",border:"2px solid "+Ci,textAlign:"center",background:inWindow?Cg:Ci,color:Cs});
+  if(inWindow){
+    ifBox.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",letterSpacing:"0.15em"},"EATING WINDOW OPEN"));
+    ifBox.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",margin:"4px 0"},"Started "+hmTime(ifday.start_ts)+"  ·  Closes ~"+hmTime(ifday.start_ts+p.if_window_h*3600000)));
+    var closeBtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"8px 16px",background:Cr,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"CLOSE WINDOW");
+    closeBtn.addEventListener("click",function(){if(!D.meals["if"][today])D.meals["if"][today]={};D.meals["if"][today].end_ts=Date.now();saveData(D);render();});
+    ifBox.appendChild(closeBtn);
+  }else if(ifday.start_ts&&ifday.end_ts){
+    ifBox.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",letterSpacing:"0.15em"},"FASTED"));
+    ifBox.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",margin:"4px 0"},"Window was "+hmTime(ifday.start_ts)+" → "+hmTime(ifday.end_ts)));
+  }else{
+    ifBox.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",letterSpacing:"0.15em"},"FASTED"));
+    ifBox.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",margin:"4px 0"},"Tap to open today's "+p.if_window_h+"h eating window"));
+    var openBtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"8px 16px",background:Cs,color:Ci,border:"none",borderRadius:"2px",cursor:"pointer"},"OPEN WINDOW NOW");
+    openBtn.addEventListener("click",function(){if(!D.meals["if"][today])D.meals["if"][today]={};D.meals["if"][today].start_ts=Date.now();delete D.meals["if"][today].end_ts;saveData(D);render();});
+    ifBox.appendChild(openBtn);
+  }
+  wrap.appendChild(ifBox);
+
+  // Macros card
+  var macCard=card();
+  macCard.appendChild(lbl("Today · Macros"));
+  macCard.appendChild(macroBar("KCAL",sum.kcal,t.kcal,"kcal",Cg));
+  macCard.appendChild(macroBar("PROTEIN",sum.p,t.p,"g",Cb));
+  macCard.appendChild(macroBar("CARBS",sum.c,t.c,"g","#5c3a1a"));
+  macCard.appendChild(macroBar("FAT",sum.f,t.f,"g",Cr));
+  wrap.appendChild(macCard);
+
+  // Tap-to-log rotation cards
+  var logCard=card();
+  logCard.appendChild(lbl("Tap to Log · Meals"));
+  logCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"Each card scaled to "+per.kcal+" kcal / "+per.p+"g protein per meal."));
+  for(var i=0;i<D.meals.rotation.length;i++){
+    (function(rid){
+      var r=recById(rid);if(!r)return;
+      var scale=scaleForMealKcal(r,per.kcal);
+      var disp={kcal:Math.round(r.kcal*scale),p:Math.round(r.p*scale),c:Math.round(r.c*scale),f:Math.round(r.f*scale)};
+      var rcard=dv({padding:"10px",border:"1px solid "+Cm,marginBottom:"6px",cursor:"pointer"});
+      var rtop=dv({display:"flex",justifyContent:"space-between",alignItems:"center"});
+      var rl=dv({});
+      rl.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci},r.name));
+      rl.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm},r.book+" p."+r.page+"  ·  "+r.svg+" svg base  ·  "+r.protein.type));
+      rtop.appendChild(rl);
+      var rr=dv({display:"flex",gap:"6px",alignItems:"center"});
+      rr.appendChild(mk("span",{fontFamily:FB,fontSize:"12px",color:Ci},"×"+scale));
+      var vbtn=mk("button",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Ci,background:"transparent",border:"1px solid "+Cm,padding:"3px 8px",borderRadius:"2px",cursor:"pointer"},"RECIPE");
+      vbtn.addEventListener("click",function(ev){ev.stopPropagation();mealsRecipeId=rid;mealsRecipeScale[rid]=1;render();window.scrollTo(0,0);});
+      rr.appendChild(vbtn);
+      rtop.appendChild(rr);
+      rcard.appendChild(rtop);
+      var grid=macroGrid([disp.kcal,disp.p,disp.c,disp.f],["KCAL","P g","C g","F g"]);
+      grid.style.marginTop="6px";
+      rcard.appendChild(grid);
+      rcard.addEventListener("click",function(){
+        var d=new Date();
+        D.meals.log.push({date:today,time:hmTime(d.getTime()),recipe_id:rid,scale:scale,kcal:disp.kcal,p:disp.p,c:disp.c,f:disp.f});
+        if(!D.meals["if"][today]||!D.meals["if"][today].start_ts||D.meals["if"][today].end_ts){if(!D.meals["if"][today])D.meals["if"][today]={};D.meals["if"][today].start_ts=Date.now();delete D.meals["if"][today].end_ts;}
+        saveData(D);render();
+      });
+      logCard.appendChild(rcard);
+    })(D.meals.rotation[i]);
+  }
+  if(D.meals.rotation.length===0){
+    logCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No recipes in rotation — pick some on ROTATE."));
+  }
+  wrap.appendChild(logCard);
+
+  // Today's log
+  var hcard=card();
+  hcard.appendChild(lbl("Log"));
+  var any=false;
+  for(var i=0;i<D.meals.log.length;i++){
+    if(D.meals.log[i].date===today){any=true;
+      var L=D.meals.log[i],r=recById(L.recipe_id);
+      var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+      row.appendChild(mk("span",{},L.time+"  "+(r?r.name:L.recipe_id)+"  ×"+L.scale));
+      row.appendChild(mk("span",{},L.kcal+" kcal  ·  "+L.p+"p"));
+      hcard.appendChild(row);
+    }
+  }
+  if(!any)hcard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No meals logged yet."));
+  wrap.appendChild(hcard);
+
+  return wrap;
+}
+
+function renderMealsRotate(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Tap to add or remove from this week's rotation. Order: salmon → shrimp → chicken."));
+  var groups=[["SALMON",function(r){return r.protein.type==="salmon";}],["SHRIMP",function(r){return r.protein.type==="shrimp";}],["CHICKEN (occasional)",function(r){return r.protein.type==="chicken";}]];
+  for(var g=0;g<groups.length;g++){
+    var groupCard=card();
+    groupCard.appendChild(lbl(groups[g][0]));
+    var filter=groups[g][1];
+    for(var i=0;i<REC.length;i++){
+      (function(r){
+        if(!filter(r))return;
+        var active=D.meals.rotation.indexOf(r.id)>=0;
+        var rcard=dv({padding:"10px",border:"1px solid "+(active?Cg:Cm),marginBottom:"6px",cursor:"pointer",background:active?"rgba(26,92,58,0.08)":"transparent"});
+        var top=dv({display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"});
+        var ll=dv({flex:"1"});
+        ll.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",color:Ci},r.name));
+        ll.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"2px"},r.book+" p."+r.page+"  ·  "+r.svg+" svg  ·  "+r.kcal+"kcal / "+r.p+"p / "+r.c+"c / "+r.f+"f"));
+        if(r.note)ll.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,fontStyle:"italic",marginTop:"3px"},r.note));
+        top.appendChild(ll);
+        var rr=dv({display:"flex",gap:"6px",alignItems:"center"});
+        var vbtn=mk("button",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Ci,background:"transparent",border:"1px solid "+Cm,padding:"3px 8px",borderRadius:"2px",cursor:"pointer"},"VIEW");
+        vbtn.addEventListener("click",function(ev){ev.stopPropagation();mealsRecipeId=r.id;mealsRecipeScale[r.id]=1;render();window.scrollTo(0,0);});
+        rr.appendChild(vbtn);
+        rr.appendChild(mk("span",{fontFamily:FB,fontSize:"16px",color:active?Cg:Cm},active?"✓":"+"));
+        top.appendChild(rr);
+        rcard.appendChild(top);
+        rcard.addEventListener("click",function(){
+          var idx=D.meals.rotation.indexOf(r.id);
+          if(idx>=0)D.meals.rotation.splice(idx,1);else D.meals.rotation.push(r.id);
+          saveData(D);render();
+        });
+        groupCard.appendChild(rcard);
+      })(REC[i]);
+    }
+    wrap.appendChild(groupCard);
+  }
+  return wrap;
+}
+
+function renderMealsPlan(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  if(D.meals.rotation.length===0){
+    wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"10px"},"Pick at least one recipe on ROTATE first."));
+    return wrap;
+  }
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"One consolidated list, grouped Costco → HEB. Plain format is tuned for paste into HEB/Costco app search."));
+
+  for(var i=0;i<D.meals.rotation.length;i++){
+    (function(rid){
+      var r=recById(rid);if(!r)return;
+      var cur=mealsPlanInput[rid]||D.meals.prep_servings;
+      var rc=card();
+      rc.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci},r.name));
+      rc.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginBottom:"6px"},r.book+" p."+r.page+"  ·  "+r.svg+" svg base"));
+      var inputRow=dv({display:"flex",alignItems:"center",gap:"10px"});
+      inputRow.appendChild(mk("span",{fontFamily:FB,fontSize:"11px",color:Ci},"Servings:"));
+      var input=mk("input",{fontFamily:FB,fontSize:"13px",color:Ci,background:"transparent",border:"none",borderBottom:"1px solid "+Cm,padding:"4px 2px",width:"70px",outline:"none"});
+      input.type="number";input.value=cur;
+      input.addEventListener("change",function(){mealsPlanInput[rid]=parseInt(input.value,10)||0;render();});
+      inputRow.appendChild(input);
+      inputRow.appendChild(mk("span",{fontFamily:FB,fontSize:"10px",color:Cm},"×"+Math.round(cur/r.svg*10)/10+" batch"));
+      rc.appendChild(inputRow);
+      wrap.appendChild(rc);
+    })(D.meals.rotation[i]);
+  }
+  var picks=[];
+  for(var i=0;i<D.meals.rotation.length;i++)picks.push({recipe_id:D.meals.rotation[i],total_servings:mealsPlanInput[D.meals.rotation[i]]||D.meals.prep_servings});
+  var listText=(mealsPlanFormat==="plain")?buildPlainList(picks):buildGroceryList(picks);
+
+  // format toggle
+  var fmtRow=dv({display:"flex",gap:"4px",margin:"4px 0"});
+  ["markdown","plain"].forEach(function(f){
+    var active=mealsPlanFormat===f;
+    var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 12px",borderRadius:"2px",cursor:"pointer"},f==="markdown"?"MARKDOWN":"PLAIN (PASTE)");
+    b.addEventListener("click",function(){mealsPlanFormat=f;render();});
+    fmtRow.appendChild(b);
+  });
+  wrap.appendChild(fmtRow);
+
+  // action buttons
+  var actRow=dv({display:"flex",gap:"6px",margin:"4px 0 10px"});
+  var copyBtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"8px 16px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"COPY");
+  copyBtn.addEventListener("click",function(){
+    if(navigator.clipboard)navigator.clipboard.writeText(listText);
+    else{var ta=document.createElement("textarea");ta.value=listText;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);}
+    copyBtn.textContent="COPIED";setTimeout(function(){copyBtn.textContent="COPY";},1200);
+  });
+  actRow.appendChild(copyBtn);
+  var shareBtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"8px 16px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"SHARE");
+  shareBtn.addEventListener("click",function(){
+    if(navigator.share){navigator.share({title:"Grocery List",text:listText}).then(function(){shareBtn.textContent="SHARED";setTimeout(function(){shareBtn.textContent="SHARE";},1200);}).catch(function(){});}
+    else{if(navigator.clipboard)navigator.clipboard.writeText(listText);shareBtn.textContent="COPIED";setTimeout(function(){shareBtn.textContent="SHARE";},1500);}
+  });
+  actRow.appendChild(shareBtn);
+  wrap.appendChild(actRow);
+
+  var pre=mk("pre",{fontFamily:FB,fontSize:"10px",color:Ci,background:Cx,border:"1px solid "+Cm,padding:"10px",whiteSpace:"pre-wrap",lineHeight:"1.4",maxHeight:"60vh",overflowY:"auto"},listText);
+  wrap.appendChild(pre);
+  return wrap;
+}
+
+function renderRecipeDetail(id){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var r=recById(id);
+  if(!r){wrap.appendChild(mk("div",{},"Recipe not found"));return wrap;}
+  var scale=mealsRecipeScale[id]||1;
+
+  var backBtn=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.15em",color:Ci,background:"transparent",border:"1px solid "+Ci,padding:"6px 12px",borderRadius:"2px",cursor:"pointer",alignSelf:"flex-start"},"← BACK");
+  backBtn.addEventListener("click",function(){mealsRecipeId=null;render();window.scrollTo(0,0);});
+  wrap.appendChild(backBtn);
+
+  wrap.appendChild(mk("div",{fontFamily:FH,fontSize:"16px",color:Ci,marginTop:"2px"},r.name));
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm},r.book+" p."+r.page+"  ·  base "+r.svg+" svg  ·  "+r.protein.type));
+
+  var macCard=card();
+  macCard.appendChild(macroGrid([r.kcal,r.p,r.c,r.f],["KCAL/SVG","P g","C g","F g"]));
+  wrap.appendChild(macCard);
+
+  if(r.note){
+    var n=card();n.style.background="#f4dfc6";n.style.borderColor=Cr;
+    n.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci},"NOTE: "+r.note));
+    wrap.appendChild(n);
+  }
+
+  // scale chips
+  var planTarget=mealsPlanInput[id]||D.meals.prep_servings;
+  var prepScale=Math.round(planTarget/r.svg*10)/10;
+  var chipRow=dv({display:"flex",flexWrap:"wrap",gap:"4px"});
+  var chipOpts=[[1,"BASE ("+r.svg+" svg)"],[2,"×2 ("+(r.svg*2)+" svg)"],[prepScale,"PREP ("+planTarget+" svg)"]];
+  chipOpts.forEach(function(c){
+    var sv=c[0],lab=c[1];
+    var active=Math.abs(sv-scale)<0.01;
+    var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},lab);
+    b.addEventListener("click",function(){mealsRecipeScale[id]=sv;render();});
+    chipRow.appendChild(b);
+  });
+  var scaleCard=card();
+  scaleCard.appendChild(lbl("Scale"));
+  scaleCard.appendChild(chipRow);
+  wrap.appendChild(scaleCard);
+
+  function fmtQty(it){
+    var parts=[];
+    if(it.g){var g=Math.round(it.g*scale);parts.push(gToOz(g)+" oz / "+g+" g");}
+    else if(it.oz){var oz=Math.round(it.oz*scale*10)/10;parts.push(oz+" oz / "+ozToG(oz)+" g");}
+    if(it.ea)parts.push(Math.round(it.ea*scale*100)/100+" each");
+    if(it.tsp)parts.push(Math.round(it.tsp*scale*10)/10+" tsp");
+    if(it.tbsp)parts.push(Math.round(it.tbsp*scale*10)/10+" Tbsp");
+    if(it.cup)parts.push(Math.round(it.cup*scale*100)/100+" cup");
+    return parts.join(" · ");
+  }
+  var ingCard=card();
+  ingCard.appendChild(lbl("Ingredients"));
+  for(var i=0;i<r.ing.length;i++){
+    var it=r.ing[i];
+    var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+    row.appendChild(mk("span",{color:Ci},it.n));
+    row.appendChild(mk("span",{color:Ci,fontSize:"10px"},fmtQty(it)));
+    ingCard.appendChild(row);
+    if(it.swap)ingCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,padding:"0 0 4px 8px"},"↳ swap: "+it.swap));
+    if(it.swap_from)ingCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,padding:"0 0 4px 8px"},"↳ subbed for: "+it.swap_from));
+  }
+  wrap.appendChild(ingCard);
+
+  var stepCard=card();
+  stepCard.appendChild(lbl("Method"));
+  var steps=STEPS[id]||[];
+  for(var i=0;i<steps.length;i++){
+    var srow=dv({display:"flex",gap:"12px",alignItems:"flex-start",padding:"8px 0",borderBottom:"1px dotted "+Cm});
+    srow.appendChild(mk("div",{fontFamily:FH,fontSize:"20px",color:Cr,minWidth:"26px",textAlign:"right"},String(i+1)));
+    srow.appendChild(mk("div",{flex:"1",fontFamily:FB,fontSize:"12px",lineHeight:"1.45",color:Ci},steps[i]));
+    stepCard.appendChild(srow);
+  }
+  wrap.appendChild(stepCard);
+
+  return wrap;
+}
 
 function renderSprint(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
