@@ -389,13 +389,29 @@ var SPLITS={
   bro:{name:"Bro-ish",desc:"Muscle-group focus. Works when volume stays moderate.",days:[{label:"Pressing",cats:["mobility","plyo","push","handstand","dip_mu","control"]},{label:"Pulling",cats:["mobility","plyo","pull","backlever","lsit","control"]},{label:"Legs + Core",cats:["mobility","plyo","squat","elbow_lever","lsit","control"]}]}
 };
 
+// ── SPRINT MODULE: masters T&F + Hyrox prep ──────────────────────────────────
+var SPRINT_TYPES=[
+  {id:"accel",   label:"Acceleration",   desc:"10–30m starts. First 4–6 step focus. Full recovery."},
+  {id:"max_v",   label:"Max Velocity",   desc:"30–60m at top speed. Full recovery 4–6 min/rep."},
+  {id:"fly",     label:"Flying Sprint",  desc:"Rolling 20–30m runway, timed 10–30m fly zone."},
+  {id:"tempo",   label:"Tempo",          desc:"70–80% intensity, repeated. Conditioning. Hyrox-relevant."},
+  {id:"hill",    label:"Hill Sprint",    desc:"Incline 6–10°. Power + safer mechanics for masters."},
+  {id:"resisted",label:"Resisted Sprint",desc:"Sled / parachute / vest. Acceleration overload."},
+  {id:"hyrox",   label:"Hyrox 1km",      desc:"Race-pace 1km repeats between station mock-ups."}
+];
+function sprintTypeById(id){for(var i=0;i<SPRINT_TYPES.length;i++){if(SPRINT_TYPES[i].id===id)return SPRINT_TYPES[i];}return null;}
+var SPRINT_DISTANCES=[20,40,60,100,200,400,800,1000,1600];
+var SPRINT_SURFACES=["track","turf","grass","treadmill","road","hill","indoor"];
+var SPRINT_FATIGUE=["fresh","post-warmup","post-lift","post-run","race-day"];
+var SPRINT_DEFAULT_DIST={accel:20,max_v:60,fly:30,tempo:200,hill:40,resisted:40,hyrox:1000};
+
 var KEY="gravity_og_v4";
 function loadData(){
   try{
     var r=localStorage.getItem(KEY);
-    if(r){var d=JSON.parse(r);if(!d.settings)d.settings={};if(!d.sessions)d.sessions=[];if(!d.progressions)d.progressions={};if(!d.settings.split)d.settings.split="fullbody";if(!d.settings.sets)d.settings.sets=3;if(!d.settings.repScheme)d.settings.repScheme="failure";return d;}
+    if(r){var d=JSON.parse(r);if(!d.settings)d.settings={};if(!d.sessions)d.sessions=[];if(!d.progressions)d.progressions={};if(!d.settings.split)d.settings.split="fullbody";if(!d.settings.sets)d.settings.sets=3;if(!d.settings.repScheme)d.settings.repScheme="failure";if(!d.sprint)d.sprint={sessions:[],prs:{}};if(!d.sprint.sessions)d.sprint.sessions=[];if(!d.sprint.prs)d.sprint.prs={};return d;}
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -458,6 +474,7 @@ function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.n
 
 
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
+var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -707,10 +724,11 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
+  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
+  else if(VIEW==="sprint")root.appendChild(renderSprint());
   else if(VIEW==="progress")root.appendChild(renderProgress());
   else if(VIEW==="history")root.appendChild(renderHistory());
   else if(VIEW==="body")root.appendChild(renderBody());
@@ -718,7 +736,7 @@ function render(){
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else root.appendChild(renderSettings());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -1516,6 +1534,193 @@ function renderBody(){
     }
     wrap.appendChild(histCard);
   }
+
+  return wrap;
+}
+
+
+function renderSprint(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+
+  // find unfinished session
+  var current=null;
+  for(var i=D.sprint.sessions.length-1;i>=0;i--){
+    if(!D.sprint.sessions[i].done){current=D.sprint.sessions[i];break;}
+  }
+
+  if(current){
+    var typ=sprintTypeById(current.type)||{label:current.type,desc:""};
+    var hdr=card();
+    var hdrRow=dv({display:"flex",justifyContent:"space-between",alignItems:"center"});
+    hdrRow.appendChild(mk("div",{fontFamily:FH,fontSize:"15px",color:Ci},"IN PROGRESS · "+typ.label));
+    hdrRow.appendChild(stamp(current.reps.length+" reps",Cb));
+    hdr.appendChild(hdrRow);
+    var meta=mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"4px"},
+      current.date+"  ·  "+current.surface+
+      (current.wind?"  ·  wind "+current.wind+" m/s":"")+
+      (current.fatigue?"  ·  "+current.fatigue:""));
+    hdr.appendChild(meta);
+    if(typ.desc) hdr.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginTop:"3px"},typ.desc));
+    if(current.notes) hdr.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci,marginTop:"3px"},"\""+current.notes+"\""));
+    wrap.appendChild(hdr);
+
+    var actions=dv({display:"flex",gap:"6px",margin:"4px 0"});
+    var addBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"+ ADD REP");
+    addBtn.addEventListener("click",function(){
+      var def_d=SPRINT_DEFAULT_DIST[current.type]||40;
+      var dist=parseFloat(prompt("Distance (m)?",def_d));
+      if(!dist) return;
+      var tm=parseFloat(prompt("Time (seconds)?",""));
+      if(!tm||isNaN(tm)) return;
+      var rpe=parseFloat(prompt("RPE (1-10)?","9"));
+      var note=prompt("Rep notes (optional):","");
+      current.reps.push({distance:dist,time:tm,rpe:rpe||0,notes:note||""});
+      var prKey=String(dist);
+      if(!D.sprint.prs[prKey]||tm<D.sprint.prs[prKey].time){
+        D.sprint.prs[prKey]={time:tm,date:current.date,session_id:current.id};
+        alert("NEW PR · "+dist+"m in "+tm.toFixed(2)+"s");
+      }
+      saveData(D);render();
+    });
+    actions.appendChild(addBtn);
+    var endBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Cr,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"END SESSION");
+    endBtn.addEventListener("click",function(){
+      current.done=true;
+      sprintPickType=null;
+      saveData(D);render();
+    });
+    actions.appendChild(endBtn);
+    var cancelBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"CANCEL");
+    cancelBtn.addEventListener("click",function(){
+      if(!confirm("Discard the current in-progress session?")) return;
+      for(var k=D.sprint.sessions.length-1;k>=0;k--){
+        if(!D.sprint.sessions[k].done){D.sprint.sessions.splice(k,1);break;}
+      }
+      saveData(D);render();
+    });
+    actions.appendChild(cancelBtn);
+    wrap.appendChild(actions);
+
+    var repsCard=card();
+    repsCard.appendChild(lbl("Reps"));
+    if(current.reps.length===0){
+      repsCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No reps yet — tap ADD REP."));
+    }else{
+      for(var i=0;i<current.reps.length;i++){
+        var r=current.reps[i];
+        var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+        row.appendChild(mk("span",{},"#"+(i+1)+"  "+r.distance+"m"));
+        row.appendChild(mk("span",{},r.time.toFixed(2)+"s  ·  RPE "+r.rpe+(r.notes?"  ·  "+r.notes:"")));
+        repsCard.appendChild(row);
+      }
+    }
+    wrap.appendChild(repsCard);
+  } else {
+    // start-a-session form
+    var startCard=card();
+    startCard.appendChild(lbl("Start a Session"));
+
+    startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px",marginTop:"4px"},"Type"));
+    var typeRow=dv({display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"6px"});
+    for(var i=0;i<SPRINT_TYPES.length;i++){
+      (function(t){
+        var active=sprintPickType===t.id;
+        var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},t.label);
+        b.addEventListener("click",function(){sprintPickType=t.id;render();});
+        typeRow.appendChild(b);
+      })(SPRINT_TYPES[i]);
+    }
+    startCard.appendChild(typeRow);
+    if(sprintPickType){
+      startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginBottom:"10px"},sprintTypeById(sprintPickType).desc));
+    }
+
+    startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Surface"));
+    var surfRow=dv({display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"10px"});
+    for(var i=0;i<SPRINT_SURFACES.length;i++){
+      (function(s){
+        var active=sprintPickSurface===s;
+        var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},s);
+        b.addEventListener("click",function(){sprintPickSurface=s;render();});
+        surfRow.appendChild(b);
+      })(SPRINT_SURFACES[i]);
+    }
+    startCard.appendChild(surfRow);
+
+    startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Pre-fatigue state"));
+    var fatRow=dv({display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"10px"});
+    for(var i=0;i<SPRINT_FATIGUE.length;i++){
+      (function(f){
+        var active=sprintPickFatigue===f;
+        var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},f);
+        b.addEventListener("click",function(){sprintPickFatigue=f;render();});
+        fatRow.appendChild(b);
+      })(SPRINT_FATIGUE[i]);
+    }
+    startCard.appendChild(fatRow);
+
+    var canStart=!!sprintPickType;
+    var startBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"12px",letterSpacing:"0.2em",padding:"14px",background:canStart?Ci:Cm,color:Cs,border:"none",borderRadius:"2px",cursor:canStart?"pointer":"default",opacity:canStart?"1":"0.55"},
+      canStart?("START "+sprintTypeById(sprintPickType).label.toUpperCase()+" SESSION"):"PICK A TYPE FIRST");
+    if(canStart){
+      startBtn.addEventListener("click",function(){
+        var wind=prompt("Wind speed (m/s, signed, blank for none). + tailwind, − headwind:","");
+        var notes=prompt("Session notes (optional):","");
+        var d=new Date();
+        var iso=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+        var hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+        D.sprint.sessions.push({
+          id:d.getTime(),date:iso,time:hm,
+          type:sprintPickType,surface:sprintPickSurface,
+          wind:wind?parseFloat(wind):0,fatigue:sprintPickFatigue,
+          notes:notes||"",reps:[],done:false
+        });
+        saveData(D);render();
+      });
+    }
+    startCard.appendChild(startBtn);
+    wrap.appendChild(startCard);
+  }
+
+  // PRs
+  var prCard=card();
+  prCard.appendChild(lbl("Personal Records"));
+  for(var i=0;i<SPRINT_DISTANCES.length;i++){
+    var dist=SPRINT_DISTANCES[i];
+    var pr=D.sprint.prs[dist];
+    var prRow=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+    prRow.appendChild(mk("span",{color:Ci},dist+"m"));
+    prRow.appendChild(mk("span",{color:pr?Ci:Cm},pr?(pr.time.toFixed(2)+"s  ·  "+pr.date):"—"));
+    prCard.appendChild(prRow);
+  }
+  wrap.appendChild(prCard);
+
+  // History
+  var histCard=card();
+  histCard.appendChild(lbl("Recent Sessions"));
+  var count=0;
+  for(var i=D.sprint.sessions.length-1;i>=0 && count<8;i--){
+    var s=D.sprint.sessions[i];
+    if(!s.done) continue;
+    count++;
+    var styp=sprintTypeById(s.type);var slabel=styp?styp.label:s.type;
+    var best=null;
+    for(var j=0;j<s.reps.length;j++){
+      if(!best||s.reps[j].time<best.time) best=s.reps[j];
+    }
+    var bestStr=best?(best.distance+"m in "+best.time.toFixed(2)+"s"):"no reps";
+    var sRow=dv({padding:"6px 0",borderBottom:"1px dotted "+Cm});
+    var sTop=dv({display:"flex",justifyContent:"space-between",fontFamily:FB,fontSize:"11px"});
+    sTop.appendChild(mk("span",{color:Ci},s.date+"  ·  "+slabel));
+    sTop.appendChild(mk("span",{color:Cm},s.reps.length+" reps"));
+    sRow.appendChild(sTop);
+    sRow.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"2px"},"best: "+bestStr+(s.notes?"  ·  \""+s.notes+"\"":"")));
+    histCard.appendChild(sRow);
+  }
+  if(count===0){
+    histCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No completed sessions yet."));
+  }
+  wrap.appendChild(histCard);
 
   return wrap;
 }
