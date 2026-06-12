@@ -476,6 +476,77 @@ var SUPP=[
 ];
 function suppById(id){for(var i=0;i<SUPP.length;i++){if(SUPP[i].id===id)return SUPP[i];}return null;}
 
+// ── ANKLE/FOOT REHAB MODULE ──────────────────────────────────────────────────
+// Six categories: 3 daily-maintenance (intrinsics, ankle mobility, balance) +
+// 3 strength/power (dorsiflexors, plantar flexors, plyo). Plyo carries a
+// power flag = no eccentric top-up, long rest, not to failure.
+var AF=[
+ {id:"intrinsics",label:"Intrinsic Foot",icon:"⌒",daily:true,desc:"Short foot, toe yoga, doming. Rebuilds the arch from the inside.",
+  progressions:[
+   {id:"short_foot_seated",name:"Short Foot Hold (seated)",level:1,type:"iso"},
+   {id:"toe_yoga_big",name:"Toe Yoga — Big Toe Lift",level:1,type:"con"},
+   {id:"toe_yoga_small",name:"Toe Yoga — Small Toes Lift",level:1,type:"con"},
+   {id:"towel_scrunch",name:"Towel Scrunch",level:2,type:"con"},
+   {id:"doming",name:"Foot Doming (arch dome)",level:2,type:"iso"},
+   {id:"marble_pickup",name:"Marble Pickup",level:2,type:"con"},
+   {id:"short_foot_stand",name:"Short Foot Hold (standing)",level:3,type:"iso"},
+   {id:"sl_short_foot",name:"Single-Leg Short Foot",level:4,type:"iso"}
+  ]},
+ {id:"dorsiflex",label:"Dorsiflexors (Tibialis)",icon:"↑",desc:"Tib raises. Prevents shin splints, brakes the sprint stride. KOT-style protocol.",
+  progressions:[
+   {id:"seated_tib_raise",name:"Seated Tibialis Raise",level:1,type:"con"},
+   {id:"banded_dorsiflex",name:"Banded Dorsiflexion",level:1,type:"con"},
+   {id:"wall_tib_raise",name:"Wall Tibialis Raise (BW)",level:2,type:"con"},
+   {id:"tib_raise_pause",name:"Tib Raise w/ 2s Pause",level:3,type:"con"},
+   {id:"weighted_tib",name:"Weighted Tib Raise (plate over foot)",level:4,type:"con"},
+   {id:"tib_bar",name:"Tib Bar — Loaded",level:5,type:"con"},
+   {id:"sl_tib_raise",name:"Single-Leg Tib Raise",level:5,type:"con"}
+  ]},
+ {id:"plantarflex",label:"Plantar Flexors (Calf)",icon:"↓",desc:"Heel raises bent + straight knee. Eccentric Achilles loading. ALFREDSON PROTOCOL flagged.",
+  progressions:[
+   {id:"db_heel_raise",name:"Double-Leg Heel Raise",level:1,type:"con"},
+   {id:"seated_heel_raise",name:"Seated Heel Raise (soleus)",level:1,type:"con"},
+   {id:"sl_heel_raise",name:"Single-Leg Heel Raise",level:3,type:"con"},
+   {id:"alfredson_straight",name:"Alfredson Eccentric — Straight Knee",level:4,type:"con",proto:"alfredson"},
+   {id:"alfredson_bent",name:"Alfredson Eccentric — Bent Knee",level:4,type:"con",proto:"alfredson"},
+   {id:"sl_heel_raise_load",name:"Single-Leg Heel Raise (loaded)",level:5,type:"con"},
+   {id:"sl_seated_load",name:"SL Seated Heel Raise (loaded)",level:5,type:"con"},
+   {id:"deficit_heel_raise",name:"Deficit Heel Raise (off step edge)",level:6,type:"con"}
+  ]},
+ {id:"ankle_mob",label:"Ankle Mobility",icon:"~",daily:true,desc:"Knee-to-wall is the metric. Goal: 5+ inches both sides.",
+  progressions:[
+   {id:"ktw_test",name:"Knee-to-Wall (assess, per side)",level:1,type:"iso"},
+   {id:"ankle_circles",name:"Ankle Circles (CARs)",level:1,type:"con"},
+   {id:"banded_ankle_dist",name:"Banded Ankle Distraction",level:2,type:"iso"},
+   {id:"deep_squat_rock",name:"Deep Squat Ankle Rock",level:2,type:"con"},
+   {id:"weighted_ktw",name:"Weighted Knee-to-Wall",level:3,type:"iso"},
+   {id:"ankle_pails_rails",name:"Ankle PAILs / RAILs",level:4,type:"iso"}
+  ]},
+ {id:"balance",label:"Balance / Proprioception",icon:"•",daily:true,desc:"Single-leg balance progressions. Critical for masters athletes.",
+  progressions:[
+   {id:"sl_stand_eo",name:"Single-Leg Stand (eyes open)",level:1,type:"iso"},
+   {id:"sl_stand_ec",name:"Single-Leg Stand (eyes closed)",level:2,type:"iso"},
+   {id:"sl_stand_foam",name:"SL Stand on Foam Pad",level:3,type:"iso"},
+   {id:"sl_y_reaches",name:"Single-Leg Y-Reaches",level:3,type:"con"},
+   {id:"sl_stand_foam_ec",name:"SL Stand Foam + Eyes Closed",level:4,type:"iso"},
+   {id:"sl_perturb",name:"SL Stand w/ Perturbations",level:5,type:"con"}
+  ]},
+ {id:"af_plyo",label:"Plyometric (foot/ankle)",icon:"^",power:true,desc:"Pogos → bounding → sprint-specific. Power, NOT to failure. Long rest.",
+  progressions:[
+   {id:"db_pogo",name:"Double-Leg Pogo Hops",level:1,type:"con"},
+   {id:"db_pogo_height",name:"DL Pogos for Height",level:2,type:"con"},
+   {id:"sl_pogo",name:"Single-Leg Pogo Hops",level:3,type:"con"},
+   {id:"sl_pogo_height",name:"SL Pogos for Height",level:4,type:"con"},
+   {id:"a_skips",name:"A-Skips (ankle stiffness)",level:4,type:"con"},
+   {id:"alt_bounding",name:"Alternating Bounding",level:5,type:"con"},
+   {id:"sl_bound_continuous",name:"Single-Leg Continuous Bound",level:6,type:"con"},
+   {id:"depth_jump",name:"Depth Jump → Sprint",level:7,type:"con"}
+  ]}
+];
+function afCatById(id){for(var i=0;i<AF.length;i++){if(AF[i].id===id)return AF[i];}return null;}
+function afExerciseById(cid,eid){var c=afCatById(cid);if(!c)return null;for(var i=0;i<c.progressions.length;i++){if(c.progressions[i].id===eid)return c.progressions[i];}return null;}
+var DEFAULT_REHAB_CURRENT={intrinsics:"short_foot_seated",dorsiflex:"seated_tib_raise",plantarflex:"db_heel_raise",ankle_mob:"ktw_test",balance:"sl_stand_eo",af_plyo:"db_pogo"};
+
 // Macro engine: Mifflin-St Jeor → TDEE → cut → P/F/C → per-meal split
 function computeMealTargets(p){
   var kg=p.weight_kg||(p.weight_lb*0.4536);
@@ -634,10 +705,14 @@ function loadData(){
       if(!d.supps)d.supps={active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]};
       if(!d.supps.active)d.supps.active=[];
       if(!d.supps.log)d.supps.log=[];
+      if(!d.rehab)d.rehab={current:DEFAULT_REHAB_CURRENT,log:[]};
+      if(!d.rehab.current)d.rehab.current={};
+      for(var rk in DEFAULT_REHAB_CURRENT){if(!d.rehab.current[rk])d.rehab.current[rk]=DEFAULT_REHAB_CURRENT[rk];}
+      if(!d.rehab.log)d.rehab.log=[];
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -702,6 +777,7 @@ function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.n
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
+var rehabPickerCat=null;
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -951,11 +1027,12 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
+  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",rehab:"Ankle / Foot Rehab",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
   else if(VIEW==="sprint")root.appendChild(renderSprint());
+  else if(VIEW==="rehab")root.appendChild(renderRehab());
   else if(VIEW==="meals")root.appendChild(renderMeals());
   else if(VIEW==="progress")root.appendChild(renderProgress());
   else if(VIEW==="history")root.appendChild(renderHistory());
@@ -964,7 +1041,7 @@ function render(){
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else root.appendChild(renderSettings());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"rehab",label:"REHAB",g:"[r]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -1766,6 +1843,130 @@ function renderBody(){
   return wrap;
 }
 
+
+function renderRehab(){
+  if(rehabPickerCat)return renderRehabPicker(rehabPickerCat);
+
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var today=todayKey();
+  var doneToday={};
+  for(var i=0;i<D.rehab.log.length;i++){if(D.rehab.log[i].date===today)doneToday[D.rehab.log[i].cat]=true;}
+  var doneCount=0;for(var k in doneToday)doneCount++;
+
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},
+    today+"  ·  "+doneCount+" / "+AF.length+" categories touched today  ·  Daily = one-tap log; Strength/Plyo = sets × reps"));
+
+  function buildAfCard(c,isStrength){
+    var cur=afExerciseById(c.id,D.rehab.current[c.id])||c.progressions[0];
+    var done=!!doneToday[c.id];
+    var rc=dv({padding:"10px",border:"1px solid "+(done?Cg:Cm),marginBottom:"6px",cursor:c.daily?"pointer":"default",background:done?"rgba(26,92,58,0.08)":"transparent"});
+    var top=dv({display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"});
+    var ll=dv({flex:"1"});
+    ll.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci},c.icon+"  "+c.label+(done?"  ✓":"")));
+    ll.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"2px"},c.desc));
+    var working=mk("div",{fontFamily:FB,fontSize:"10px",color:Cb,marginTop:"3px"},"Working: "+cur.name+"  ·  L"+cur.level+"  ·  "+cur.type);
+    ll.appendChild(working);
+    if(cur.proto==="alfredson")ll.appendChild(stamp("ALFREDSON 3×15 BID",Cr));
+    top.appendChild(ll);
+
+    var rr=dv({display:"flex",gap:"6px",alignItems:"center"});
+    var pickBtn=mk("button",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Ci,background:"transparent",border:"1px solid "+Cm,padding:"3px 8px",borderRadius:"2px",cursor:"pointer"},"PICK");
+    pickBtn.addEventListener("click",function(ev){ev.stopPropagation();rehabPickerCat=c.id;render();window.scrollTo(0,0);});
+    rr.appendChild(pickBtn);
+    if(isStrength){
+      var logBtn=mk("button",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cs,background:Ci,border:"none",padding:"5px 10px",borderRadius:"2px",cursor:"pointer"},"LOG SET");
+      logBtn.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        var sets=parseInt(prompt("Sets? (current: "+cur.name+")","3"),10);
+        if(!sets)return;
+        var rOrS=(cur.type==="iso")?"Seconds per set?":"Reps per set?";
+        var v=parseFloat(prompt(rOrS,cur.type==="iso"?"30":"10"));
+        if(!v)return;
+        var load=parseFloat(prompt("Load lb? (0 for bodyweight)","0"));
+        var side=prompt("Side? (L/R/BOTH)","BOTH");
+        var d=new Date();
+        D.rehab.log.push({date:today,time:hmTime(d.getTime()),cat:c.id,exercise_id:cur.id,sets:sets,reps:cur.type==="iso"?null:v,seconds:cur.type==="iso"?v:null,load_lb:load||0,side:side||"BOTH"});
+        saveData(D);render();
+      });
+      rr.appendChild(logBtn);
+    }
+    top.appendChild(rr);
+    rc.appendChild(top);
+
+    if(c.daily){
+      rc.addEventListener("click",function(){
+        var d=new Date();
+        D.rehab.log.push({date:today,time:hmTime(d.getTime()),cat:c.id,exercise_id:cur.id,sets:1,reps:null,seconds:null});
+        saveData(D);render();
+      });
+    }
+    return rc;
+  }
+
+  var dailyCard=card();
+  dailyCard.appendChild(lbl("Daily Maintenance"));
+  dailyCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"Tap any card to log \"done today\". 5–10 min total target."));
+  for(var i=0;i<AF.length;i++){if(AF[i].daily)dailyCard.appendChild(buildAfCard(AF[i],false));}
+  wrap.appendChild(dailyCard);
+
+  var strCard=card();
+  strCard.appendChild(lbl("Strength & Power"));
+  strCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"Tap LOG SET to record sets × reps × load. 2–3x/wk. Plyo: long rest, not to failure."));
+  for(var i=0;i<AF.length;i++){if(!AF[i].daily)strCard.appendChild(buildAfCard(AF[i],true));}
+  wrap.appendChild(strCard);
+
+  var hcard=card();
+  hcard.appendChild(lbl("Today · Log"));
+  var any=false;
+  for(var i=D.rehab.log.length-1;i>=0;i--){
+    if(D.rehab.log[i].date===today){
+      any=true;
+      var L=D.rehab.log[i],c=afCatById(L.cat),ex=afExerciseById(L.cat,L.exercise_id);
+      var parts=[];
+      if(L.sets&&(L.reps||L.seconds))parts.push(L.sets+"×"+(L.reps||L.seconds+"s"));
+      if(L.load_lb)parts.push(L.load_lb+" lb");
+      if(L.side&&L.side!=="BOTH")parts.push(L.side);
+      var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+      row.appendChild(mk("span",{},L.time+"  "+(c?c.label:L.cat)+"  ·  "+(ex?ex.name:L.exercise_id)));
+      row.appendChild(mk("span",{},parts.join("  ·  ")));
+      hcard.appendChild(row);
+    }
+  }
+  if(!any)hcard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"Nothing logged today."));
+  wrap.appendChild(hcard);
+
+  return wrap;
+}
+
+function renderRehabPicker(catId){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var c=afCatById(catId);
+  if(!c){wrap.appendChild(mk("div",{},"Unknown category"));return wrap;}
+  var back=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.15em",color:Ci,background:"transparent",border:"1px solid "+Ci,padding:"6px 12px",borderRadius:"2px",cursor:"pointer",alignSelf:"flex-start"},"← BACK");
+  back.addEventListener("click",function(){rehabPickerCat=null;render();window.scrollTo(0,0);});
+  wrap.appendChild(back);
+  wrap.appendChild(mk("div",{fontFamily:FH,fontSize:"15px",color:Ci,marginTop:"2px"},c.label));
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},c.desc));
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Tap the level you're currently working. Becomes the \"Working\" exercise on the rehab home."));
+  var lc=card();
+  for(var i=0;i<c.progressions.length;i++){
+    (function(ex){
+      var active=D.rehab.current[catId]===ex.id;
+      var row=dv({padding:"8px 12px",border:"1px solid "+(active?Cg:Cm),marginBottom:"6px",cursor:"pointer",background:active?"rgba(26,92,58,0.08)":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center"});
+      var ll=dv({});
+      ll.appendChild(mk("span",{fontFamily:FB,fontSize:"11px",color:Ci,fontWeight:"bold"},"L"+ex.level+"  "));
+      ll.appendChild(mk("span",{fontFamily:FB,fontSize:"11px",color:Ci},ex.name+"  "));
+      ll.appendChild(stamp(ex.type,ex.type==="iso"?Cb:Cr));
+      if(ex.proto==="alfredson"){var s=stamp("ALFREDSON",Cr);s.style.marginLeft="4px";ll.appendChild(s);}
+      row.appendChild(ll);
+      row.appendChild(mk("span",{fontFamily:FB,fontSize:"14px",color:active?Cg:Cm},active?"✓":"·"));
+      row.addEventListener("click",function(){D.rehab.current[catId]=ex.id;saveData(D);rehabPickerCat=null;render();window.scrollTo(0,0);});
+      lc.appendChild(row);
+    })(c.progressions[i]);
+  }
+  wrap.appendChild(lc);
+  return wrap;
+}
 
 function renderMeals(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
