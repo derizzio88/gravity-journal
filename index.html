@@ -160,6 +160,59 @@ var OG={
     {id:"kb_double_press",name:"Double KB Press",level:5,type:"con"},
     {id:"kb_double_fsq",name:"Double KB Front Squat",level:5,type:"con"},
     {id:"kb_long_cycle",name:"Long Cycle Clean and Jerk",level:6,type:"con",p:1}
+  ]},
+  mobility:{label:"Mobility / Flexibility",icon:"M",color:"#1a6b6b",warmup:1,daily:1,
+    desc:"Active mobility and end-range strength. OG2: train in warm-up, practice daily.",
+    rt:[30,30,25,20,20,15,15,10,10],progressions:[
+    {id:"wrist_mob",name:"Wrist Mobility Circuit",level:1,type:"iso"},
+    {id:"shoulder_dislocates",name:"Shoulder Dislocates (band/stick)",level:1,type:"con"},
+    {id:"rto_support",name:"RTO Support Hold",level:3,type:"iso"},
+    {id:"german_hang_mob",name:"German Hang (shoulder)",level:2,type:"iso"},
+    {id:"skin_cat_mob",name:"Skin the Cat",level:3,type:"con"},
+    {id:"thoracic_bridge",name:"Thoracic Bridge / Wheel",level:3,type:"iso"},
+    {id:"stand_bridge",name:"Stand-to-Stand Bridge",level:6,type:"con"},
+    {id:"pancake",name:"Pancake (active compression)",level:3,type:"iso"},
+    {id:"loaded_pancake",name:"Loaded Pancake",level:5,type:"iso"},
+    {id:"jefferson_curl",name:"Jefferson Curl",level:3,type:"con"},
+    {id:"loaded_jeff_curl",name:"Loaded Jefferson Curl",level:5,type:"con"},
+    {id:"pike_compression",name:"Active Pike Compression",level:2,type:"iso"},
+    {id:"straddle_press_prep",name:"Straddle Compression / Press Prep",level:5,type:"iso"},
+    {id:"hip_pails_rails",name:"Hip PAILs / RAILs",level:4,type:"iso"},
+    {id:"shoulder_pails_rails",name:"Shoulder PAILs / RAILs",level:4,type:"iso"},
+    {id:"standing_split",name:"Active Standing Split",level:6,type:"iso"},
+    {id:"full_split",name:"Full Split (active)",level:8,type:"iso",p:1}
+  ]},
+  control:{label:"Control / Tempo",icon:"C",color:"#6b4a1a",
+    desc:"Fine motor control: tempo reps, intra-set holds, partial-range tension, instability.",
+    rt:[20,20,15,15,12,10,10,8,6],progressions:[
+    {id:"tempo_pushup_5151",name:"Tempo Push-up 5-1-5-1",level:2,type:"con"},
+    {id:"tempo_squat_5151",name:"Tempo Squat 5-1-5-1",level:2,type:"con"},
+    {id:"tempo_pullup",name:"Tempo Pull-up 5-1-5-1",level:3,type:"con"},
+    {id:"partial_hold_pushup",name:"Push-up Mid-Range Hold",level:3,type:"iso"},
+    {id:"ring_support_iso",name:"Ring Support (instability) Hold",level:3,type:"iso"},
+    {id:"ring_pushup_iso",name:"Ring Push-up Position Hold",level:4,type:"iso"},
+    {id:"ring_row_iso",name:"Ring Row Mid-Hold",level:3,type:"iso"},
+    {id:"copenhagen_hold",name:"Copenhagen Plank Hold",level:4,type:"iso"},
+    {id:"overcoming_iso",name:"Overcoming Isometric (max push)",level:5,type:"iso"},
+    {id:"intra_set_hold",name:"Intra-Set Position Hold",level:5,type:"iso"},
+    {id:"slow_negative_10s",name:"10s Negative (any skill)",level:5,type:"con"},
+    {id:"partial_range_tension",name:"Partial-Range Tension (segmental)",level:6,type:"iso"}
+  ]},
+  plyo:{label:"Plyometric / Power",icon:"P",color:"#8b1a3a",power:1,
+    desc:"Explosive power. Low-rep, full rest, NOT to failure. Quality over quantity.",
+    rt:[8,6,5,5,4,4,3,3,3],progressions:[
+    {id:"jump_squat",name:"Jump Squat",level:1,type:"con"},
+    {id:"broad_jump",name:"Broad Jump",level:1,type:"con"},
+    {id:"jumping_pullup_pl",name:"Explosive Jumping Pull-up",level:1,type:"con"},
+    {id:"jumping_dip_pl",name:"Jumping Dip",level:1,type:"con"},
+    {id:"plyo_pushup",name:"Plyo Push-up",level:2,type:"con"},
+    {id:"explosive_pullup",name:"Explosive Pull-up (chest-high)",level:3,type:"con"},
+    {id:"clap_pushup",name:"Clap Push-up",level:3,type:"con"},
+    {id:"depth_jump",name:"Depth Jump",level:3,type:"con"},
+    {id:"explosive_ring_dip",name:"Explosive Ring Dip",level:4,type:"con"},
+    {id:"clap_pullup",name:"Clap Pull-up",level:5,type:"con"},
+    {id:"behind_back_clap_pu",name:"Behind-Back Clap Push-up",level:6,type:"con"},
+    {id:"muscle_up_explosive",name:"Explosive (high) Muscle-up",level:6,type:"con",p:1}
   ]}
 };
 
@@ -330,10 +383,10 @@ var KB_CIRCUITS=[
 var MODS=[{id:"std",s:"Std"},{id:"ecc",s:"Ecc"},{id:"iso",s:"Iso"},{id:"asst",s:"Asst"},{id:"rpe",s:"RPE8"},{id:"neg",s:"Neg"}];
 
 var SPLITS={
-  fullbody:{name:"Full Body",desc:"All categories every session. OG recommended for beginners.",days:[{label:"Full Body",cats:["push","pull","backlever","handstand","lsit","dip_mu","squat"]}]},
-  pushpull:{name:"Push / Pull",desc:"Alternate push and pull days.",days:[{label:"Push Day",cats:["push","handstand","dip_mu","squat"]},{label:"Pull Day",cats:["pull","backlever","lsit","squat"]}]},
-  upperlower:{name:"Upper / Lower",desc:"Upper body skill vs leg sessions.",days:[{label:"Upper",cats:["push","pull","backlever","handstand","lsit","dip_mu"]},{label:"Lower",cats:["squat","elbow_lever","lsit"]}]},
-  bro:{name:"Bro-ish",desc:"Muscle-group focus. Works when volume stays moderate.",days:[{label:"Pressing",cats:["push","handstand","dip_mu"]},{label:"Pulling",cats:["pull","backlever","lsit"]},{label:"Legs + Core",cats:["squat","elbow_lever","lsit"]}]}
+  fullbody:{name:"Full Body",desc:"All categories every session. OG recommended for beginners.",days:[{label:"Full Body",cats:["mobility","plyo","push","pull","backlever","handstand","lsit","dip_mu","squat","control"]}]},
+  pushpull:{name:"Push / Pull",desc:"Alternate push and pull days.",days:[{label:"Push Day",cats:["mobility","plyo","push","handstand","dip_mu","squat","control"]},{label:"Pull Day",cats:["mobility","plyo","pull","backlever","lsit","squat","control"]}]},
+  upperlower:{name:"Upper / Lower",desc:"Upper body skill vs leg sessions.",days:[{label:"Upper",cats:["mobility","plyo","push","pull","backlever","handstand","lsit","dip_mu","control"]},{label:"Lower",cats:["mobility","plyo","squat","elbow_lever","lsit","control"]}]},
+  bro:{name:"Bro-ish",desc:"Muscle-group focus. Works when volume stays moderate.",days:[{label:"Pressing",cats:["mobility","plyo","push","handstand","dip_mu","control"]},{label:"Pulling",cats:["mobility","plyo","pull","backlever","lsit","control"]},{label:"Legs + Core",cats:["mobility","plyo","squat","elbow_lever","lsit","control"]}]}
 };
 
 var KEY="gravity_og_v4";
@@ -796,8 +849,19 @@ function renderWod(){
     wrap.appendChild(warn);return wrap;
   }
 
+  var phaseOf=function(ck){var o=OG[ck];if(!o)return "strength";if(o.warmup)return "warmup";if(o.power)return "power";if(ck==="control")return "control";return "strength";};
+  var phaseInfo={warmup:{t:"WARM-UP / MOBILITY",d:"Active mobility — prep, not fatigue. OG2: also do this daily.",c:"#1a6b6b"},power:{t:"POWER (fresh CNS)",d:"Explosive, low-rep, full rest. Not to failure — scale by feel.",c:"#8b1a3a"},strength:{t:"STRENGTH WORK",d:"The core of your session.",c:Ci},control:{t:"CONTROL / COOL-DOWN",d:"Tempo, holds, end-range control while fatigued.",c:"#6b4a1a"}};
+  var lastPhase=null;
   for(var ei=0;ei<cats.length;ei++){
     (function(catKey){
+      var ph=phaseOf(catKey);
+      if(ph!==lastPhase){
+        lastPhase=ph;var pin=phaseInfo[ph];
+        var ph_h=dv({margin:"14px 0 4px 0",borderBottom:"1px dashed "+pin.c,paddingBottom:"3px"});
+        ph_h.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",letterSpacing:"0.15em",color:pin.c},pin.t));
+        ph_h.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"1px"},pin.d));
+        wrap.appendChild(ph_h);
+      }
       var cat=OG[catKey];var currId=D.progressions[catKey];
       if(!currId){
         var c=card({opacity:"0.5"});var row=dv({display:"flex",alignItems:"center",gap:"8px"});
@@ -872,9 +936,11 @@ function renderWod(){
       else{
         var logMod=curMod||"std";var isIsoFinal=isIso||(logMod==="iso");
         brow.appendChild(iBtn("[ LOG SET ]",function(){
+          var isPower=OG[catKey]&&OG[catKey].power;
           var enteredVal=D._wodVals&&D._wodVals[catKey]?parseInt(D._wodVals[catKey]):null;
           var logVal=enteredVal||th.val;
-          var shortfall=(!isIsoFinal&&enteredVal&&enteredVal<th.val)?(th.val-enteredVal):0;
+          // Power work is NOT to failure — never auto-top-up with eccentrics.
+          var shortfall=(!isPower&&!isIsoFinal&&enteredVal&&enteredVal<th.val)?(th.val-enteredVal):0;
           completed[catKey]=(completed[catKey]||0)+1;
           logSets.push({id:Date.now()+Math.random(),category:catKey,exerciseId:currId,modifier:logMod,reps:!isIsoFinal?logVal:null,seconds:isIsoFinal?logVal:null,notes:(D._wodNotes&&D._wodNotes[catKey])||"WOD",ts:Date.now()});
           // If shortfall, auto-log eccentric sets to make up the difference
@@ -882,8 +948,8 @@ function renderWod(){
             logSets.push({id:Date.now()+Math.random()+0.1,category:catKey,exerciseId:currId,modifier:"ecc",reps:shortfall,seconds:null,notes:"Eccentric top-up ("+logVal+"+"+shortfall+"ecc="+th.val+")",ts:Date.now()});
           }
           if(!D._wodVals)D._wodVals={};D._wodVals[catKey]="";
-          // Start rest timer
-          var restSecs=isIsoFinal?90:(logVal>=12?90:120);
+          // Start rest timer. Power work gets full CNS recovery (3 min).
+          var restSecs=isPower?180:(isIsoFinal?90:(logVal>=12?90:120));
           startRest(restSecs,catKey);
           render();
         },{primary:true,style:{flex:"1"}}));
@@ -1513,7 +1579,7 @@ function renderCoach(){
       balance: "Analyze my push/pull structural balance."+NL+NL+"My training context:"+NL+ctxJson+NL+NL+"Please:"+NL+"1. Assess my push/pull set ratio (OG recommends 1:1, with extra horizontal pulling for shoulder health)"+NL+"2. Check if I am training OG-recommended prehab movements (back lever for shoulder ext, L-sit for core)"+NL+"3. Identify dangerous imbalances (OG author injured his shoulder from too much push)"+NL+"4. Give specific prescription to correct any imbalances"+NL+"5. Flag exercises to prioritize or deprioritize based on my current levels"
     };
 
-    var sysPrompt = "You are an expert bodyweight strength coach with deep knowledge of Steven Low's Overcoming Gravity 2nd Edition methodology. You have access to the athlete's real training data. Key OG principles to apply: SAID principle, structural balance (push:pull ratio critical for shoulder health), linear progression from beginner through advanced, isometric holds use 1 rep = 2s formula at 60-75% max hold time, eccentrics are tools for progressions not yet achieved concentrically, full-body routines recommended for beginners/intermediate. The athlete's goal is aesthetics and mastery of OG movements. Be direct, specific, and reference their actual numbers and exercises. No generic advice.";
+    var sysPrompt = "You are an expert bodyweight strength coach with deep knowledge of Steven Low's Overcoming Gravity 2nd Edition methodology. You have access to the athlete's real training data. Key OG principles to apply: SAID principle, structural balance (push:pull ratio critical for shoulder health), linear progression from beginner through advanced, isometric holds use 1 rep = 2s formula at 60-75% max hold time, eccentrics are tools for progressions not yet achieved concentrically, full-body routines recommended for beginners/intermediate. SESSION STRUCTURE (sequence matters): (1) MOBILITY/FLEXIBILITY goes in the warm-up as active mobility (prep, not fatigue) and should also be trained daily outside sessions per 'use it or lose it'; static/loaded stretching belongs at the end when warm and fatigued. (2) PLYOMETRIC/POWER work goes early while the CNS is fresh: low-rep, full 3-min rest, NOT to failure — quality over quantity. (3) STRENGTH work is the core. (4) CONTROL/TEMPO work (fine motor control, intra-set holds, partial-range tension) is fatiguing skill-strength done in the strength block or as cool-down. The athlete's goal is aesthetics, mastery of OG movements, and a Baki/Yujiro-style profile: fine muscular control, active flexibility with end-range strength, explosive power, and low body fat — not size for its own sake. Be direct, specific, and reference their actual numbers and exercises. No generic advice.";
 
     callClaude(prompts[coachState.mode], sysPrompt, function(err, text){
       coachState.loading=false;
