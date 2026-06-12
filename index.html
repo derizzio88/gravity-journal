@@ -780,6 +780,7 @@ var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
 var rehabPickerCat=null;
+var trainSub="sprint",insightsSub="progress",adminSub="settings";
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -1029,22 +1030,25 @@ function render(){
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
   hdr.appendChild(sub);root.appendChild(hdr);
-  var titles={wod:"Today's Workout",log:"Manual Log",sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",meals:"Meals & IF",progress:"Progression Charts",history:"Performance History",body:"Body Composition",coach:"AI Coach",data:"Data & Backup",settings:"Training Settings"};
-  root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titles[VIEW]));
+  // Title is "Parent · Sub" when in a parent tab so the user knows where they are
+  var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
+  var subTitles={sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup"};
+  var titleText=titles[VIEW]||"Today's Workout";
+  if(VIEW==="train"&&subTitles[trainSub])titleText+=" · "+subTitles[trainSub];
+  else if(VIEW==="insights"&&subTitles[insightsSub])titleText+=" · "+subTitles[insightsSub];
+  else if(VIEW==="admin"&&subTitles[adminSub])titleText+=" · "+subTitles[adminSub];
+  root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titleText));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
-  else if(VIEW==="sprint")root.appendChild(renderSprint());
-  else if(VIEW==="rehab")root.appendChild(renderRehab());
-  else if(VIEW==="martial")root.appendChild(renderMartial());
+  else if(VIEW==="train")root.appendChild(renderTrain());
   else if(VIEW==="meals")root.appendChild(renderMeals());
-  else if(VIEW==="progress")root.appendChild(renderProgress());
-  else if(VIEW==="history")root.appendChild(renderHistory());
+  else if(VIEW==="insights")root.appendChild(renderInsights());
   else if(VIEW==="body")root.appendChild(renderBody());
-  else if(VIEW==="data")root.appendChild(renderData());
   else if(VIEW==="coach")root.appendChild(renderCoach());
-  else root.appendChild(renderSettings());
+  else if(VIEW==="admin")root.appendChild(renderAdmin());
+  else root.appendChild(renderWod());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"sprint",label:"SPRINT",g:"[>>]"},{id:"rehab",label:"REHAB",g:"[r]"},{id:"martial",label:"MARTIAL",g:"[ma]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"progress",label:"CHARTS",g:"[=]"},{id:"history",label:"HISTORY",g:"[h]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"data",label:"DATA",g:"[d]"},{id:"settings",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"train",label:"TRAIN",g:"[^]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"insights",label:"INSIGHTS",g:"[=]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"admin",label:"SETUP",g:"[o]"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
       var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
@@ -1846,6 +1850,48 @@ function renderBody(){
   return wrap;
 }
 
+
+// Shared pill-bar builder for parent-tab sub-navigation
+function pillBar(items,currentVal,onChange){
+  var bar=dv({display:"flex",gap:"4px",marginBottom:"6px",flexWrap:"wrap"});
+  for(var i=0;i<items.length;i++){
+    (function(item){
+      var active=currentVal===item[0];
+      var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"5px 14px",borderRadius:"2px",cursor:"pointer"},item[1]);
+      b.addEventListener("click",function(){onChange(item[0]);});
+      bar.appendChild(b);
+    })(items[i]);
+  }
+  return bar;
+}
+
+// Parent: training-mode tabs
+function renderTrain(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(pillBar([["sprint","SPRINT"],["rehab","REHAB"],["martial","MARTIAL"]],trainSub,function(v){trainSub=v;render();}));
+  if(trainSub==="sprint")wrap.appendChild(renderSprint());
+  else if(trainSub==="rehab")wrap.appendChild(renderRehab());
+  else if(trainSub==="martial")wrap.appendChild(renderMartial());
+  return wrap;
+}
+
+// Parent: progression + session history
+function renderInsights(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(pillBar([["progress","CHARTS"],["history","HISTORY"]],insightsSub,function(v){insightsSub=v;render();}));
+  if(insightsSub==="progress")wrap.appendChild(renderProgress());
+  else if(insightsSub==="history")wrap.appendChild(renderHistory());
+  return wrap;
+}
+
+// Parent: settings + data/backup
+function renderAdmin(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(pillBar([["settings","SETTINGS"],["data","DATA"]],adminSub,function(v){adminSub=v;render();}));
+  if(adminSub==="settings")wrap.appendChild(renderSettings());
+  else if(adminSub==="data")wrap.appendChild(renderData());
+  return wrap;
+}
 
 function renderMartial(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
