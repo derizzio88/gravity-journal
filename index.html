@@ -463,6 +463,19 @@ var STEPS={
 };
 function recById(id){for(var i=0;i<REC.length;i++){if(REC[i].id===id)return REC[i];}return null;}
 
+// ── SUPPLEMENT STACK: short, evidence-grounded list ──────────────────────────
+var SUPP=[
+ {id:"creatine", name:"Creatine Monohydrate", dose:5,    unit:"g",  when:"any time, daily", note:"Loading optional; 3-5g/d steady. No cycling needed."},
+ {id:"caffeine", name:"Caffeine",             dose:200,  unit:"mg", when:"pre-training or AM focus", note:"~1 strong coffee. Stack 1:1 with theanine."},
+ {id:"theanine", name:"L-Theanine",           dose:200,  unit:"mg", when:"with caffeine", note:"Smooths jitters, sharpens focus."},
+ {id:"whey",     name:"Whey Protein",         dose:30,   unit:"g",  when:"post-training or to close protein gap", note:"Closes per-meal protein gap if cookbook recipes are too kcal-dense."},
+ {id:"omega3",   name:"Omega-3 (EPA+DHA)",    dose:2000, unit:"mg", when:"with a meal containing fat", note:"Skip on heavy-salmon days; rotation may already cover it."},
+ {id:"vit_d",    name:"Vitamin D3",           dose:2000, unit:"IU", when:"with a fatty meal", note:"Test before chronic dosing — don't guess."},
+ {id:"magnesium",name:"Magnesium (glycinate)",dose:300,  unit:"mg", when:"evening / pre-sleep", note:"Glycinate is gentlest on GI. Confirm need before chronic dosing."},
+ {id:"melatonin",name:"Melatonin (low-dose)", dose:0.3,  unit:"mg", when:"as-needed for sleep timing shifts — NOT nightly", note:"0.3-0.5 mg is what the data supports. Higher doses oversold."}
+];
+function suppById(id){for(var i=0;i<SUPP.length;i++){if(SUPP[i].id===id)return SUPP[i];}return null;}
+
 // Macro engine: Mifflin-St Jeor → TDEE → cut → P/F/C → per-meal split
 function computeMealTargets(p){
   var kg=p.weight_kg||(p.weight_lb*0.4536);
@@ -618,10 +631,13 @@ function loadData(){
       if(!d.meals.prep_servings)d.meals.prep_servings=20;
       if(!d.meals["if"])d.meals["if"]={};
       if(!d.meals.log)d.meals.log=[];
+      if(!d.supps)d.supps={active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]};
+      if(!d.supps.active)d.supps.active=[];
+      if(!d.supps.log)d.supps.log=[];
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -1759,7 +1775,7 @@ function renderMeals(){
 
   // Sub-nav pill bar
   var subnav=dv({display:"flex",gap:"4px",marginBottom:"4px",flexWrap:"wrap"});
-  var subs=[["today","TODAY"],["rotate","ROTATE"],["plan","PLAN"]];
+  var subs=[["today","TODAY"],["rotate","ROTATE"],["plan","PLAN"],["stack","STACK"]];
   for(var i=0;i<subs.length;i++){
     (function(sub){
       var active=mealsSub===sub[0];
@@ -1773,6 +1789,33 @@ function renderMeals(){
   if(mealsSub==="today")wrap.appendChild(renderMealsToday());
   else if(mealsSub==="rotate")wrap.appendChild(renderMealsRotate());
   else if(mealsSub==="plan")wrap.appendChild(renderMealsPlan());
+  else if(mealsSub==="stack")wrap.appendChild(renderMealsStack());
+  return wrap;
+}
+
+function renderMealsStack(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Tap to toggle active/inactive. Active supplements show on TODAY for tap-to-log."));
+  for(var i=0;i<SUPP.length;i++){
+    (function(s){
+      var active=D.supps.active.indexOf(s.id)>=0;
+      var rcard=dv({padding:"10px",border:"1px solid "+(active?Cg:Cm),marginBottom:"6px",cursor:"pointer",background:active?"rgba(26,92,58,0.08)":"transparent"});
+      var top=dv({display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"});
+      var ll=dv({flex:"1"});
+      ll.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci},s.name));
+      ll.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci,marginTop:"2px"},s.dose+" "+s.unit+"  ·  "+s.when));
+      if(s.note)ll.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,fontStyle:"italic",marginTop:"3px"},s.note));
+      top.appendChild(ll);
+      top.appendChild(mk("div",{fontFamily:FB,fontSize:"16px",color:active?Cg:Cm},active?"✓":"+"));
+      rcard.appendChild(top);
+      rcard.addEventListener("click",function(){
+        var idx=D.supps.active.indexOf(s.id);
+        if(idx>=0)D.supps.active.splice(idx,1);else D.supps.active.push(s.id);
+        saveData(D);render();
+      });
+      wrap.appendChild(rcard);
+    })(SUPP[i]);
+  }
   return wrap;
 }
 
@@ -1882,6 +1925,40 @@ function renderMealsToday(){
     logCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No recipes in rotation — pick some on ROTATE."));
   }
   wrap.appendChild(logCard);
+
+  // Supplement stack — tap to log a dose, card greens out at target
+  var suppSum={};
+  for(var i=0;i<D.supps.log.length;i++){
+    if(D.supps.log[i].date===today){var sid=D.supps.log[i].supp_id;suppSum[sid]=(suppSum[sid]||0)+D.supps.log[i].dose;}
+  }
+  var sCard=card();
+  sCard.appendChild(lbl("Tap to Log · Stack"));
+  sCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"Long-running adherence is the point."));
+  var anyActive=false;
+  for(var i=0;i<D.supps.active.length;i++){
+    (function(sid){
+      var s=suppById(sid);if(!s)return;
+      anyActive=true;
+      var taken=suppSum[s.id]||0;
+      var done=taken>=s.dose;
+      var srow=dv({padding:"8px 12px",border:"1px solid "+(done?Cg:Cm),marginBottom:"6px",cursor:"pointer",background:done?"rgba(26,92,58,0.08)":"transparent"});
+      var stop=dv({display:"flex",justifyContent:"space-between",alignItems:"center"});
+      var sl=dv({});
+      sl.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",color:Ci},s.name));
+      sl.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm},s.when));
+      stop.appendChild(sl);
+      stop.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Ci},Math.round(taken*10)/10+" / "+s.dose+" "+s.unit+(done?"  ✓":"")));
+      srow.appendChild(stop);
+      srow.addEventListener("click",function(){
+        var d=new Date();
+        D.supps.log.push({date:today,time:hmTime(d.getTime()),supp_id:s.id,dose:s.dose,unit:s.unit});
+        saveData(D);render();
+      });
+      sCard.appendChild(srow);
+    })(D.supps.active[i]);
+  }
+  if(!anyActive)sCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No active supplements — toggle some on STACK sub-tab."));
+  wrap.appendChild(sCard);
 
   // Today's log
   var hcard=card();
