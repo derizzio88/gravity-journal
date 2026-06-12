@@ -547,6 +547,34 @@ function afCatById(id){for(var i=0;i<AF.length;i++){if(AF[i].id===id)return AF[i
 function afExerciseById(cid,eid){var c=afCatById(cid);if(!c)return null;for(var i=0;i<c.progressions.length;i++){if(c.progressions[i].id===eid)return c.progressions[i];}return null;}
 var DEFAULT_REHAB_CURRENT={intrinsics:"short_foot_seated",dorsiflex:"seated_tib_raise",plantarflex:"db_heel_raise",ankle_mob:"ktw_test",balance:"sl_stand_eo",af_plyo:"db_pogo"};
 
+// ── HYROX MODULE: compromise circuits + race-rehearsal blocks ────────────────
+// Open-division weights (kg). load_each=true means per-hand load.
+var HYROX_STATIONS=[
+ {id:"ski",       name:"SkiErg",             metric:"distance", target:1000, unit:"m"},
+ {id:"sled_push", name:"Sled Push",          metric:"distance", target:50,   unit:"m", load_m:152, load_f:102},
+ {id:"sled_pull", name:"Sled Pull",          metric:"distance", target:50,   unit:"m", load_m:103, load_f:78},
+ {id:"burpee_bj", name:"Burpee Broad Jumps", metric:"distance", target:80,   unit:"m"},
+ {id:"row",       name:"Rowing",             metric:"distance", target:1000, unit:"m"},
+ {id:"farmers",   name:"Farmers Carry",      metric:"distance", target:200,  unit:"m", load_m:24, load_f:16, load_each:true},
+ {id:"sandbag",   name:"Sandbag Lunges",     metric:"distance", target:100,  unit:"m", load_m:20, load_f:10},
+ {id:"wallball",  name:"Wall Balls",         metric:"reps",     target:100,  unit:"reps", load_m:9, load_f:6}
+];
+function hyroxStationById(id){for(var i=0;i<HYROX_STATIONS.length;i++){if(HYROX_STATIONS[i].id===id)return HYROX_STATIONS[i];}return null;}
+
+var HYROX_TYPES=[
+ {id:"compromise", label:"Compromise Circuit", desc:"Run → station → run → station... race-rehearsal pacing."},
+ {id:"single",     label:"Station + Run",      desc:"1 station bookended by 1km runs. Builds station fitness under run fatigue."},
+ {id:"race_sim",   label:"Race Simulation",    desc:"Partial or full rehearsal (8 stations, 8×1km runs)."},
+ {id:"station_only",label:"Stations Only",     desc:"No runs. Station-fitness focus."},
+ {id:"time_trial", label:"Time Trial",         desc:"1km + 1 station as fast as possible. Benchmark."}
+];
+function hyroxTypeById(id){for(var i=0;i<HYROX_TYPES.length;i++){if(HYROX_TYPES[i].id===id)return HYROX_TYPES[i];}return null;}
+
+// "mm:ss" or "ss" → seconds (float)
+function parseTimeStr(s){if(!s&&s!==0)return NaN;s=String(s).trim();if(!s)return NaN;if(s.indexOf(":")>=0){var p=s.split(":");return parseInt(p[0],10)*60+parseFloat(p[1]);}return parseFloat(s);}
+// seconds → "mm:ss" or "ss" for display
+function fmtSec(secs){if(secs<60)return Math.round(secs*10)/10+"s";var m=Math.floor(secs/60),s=secs-m*60;return m+":"+(s<10?"0":"")+(Math.round(s*10)/10);}
+
 // Macro engine: Mifflin-St Jeor → TDEE → cut → P/F/C → per-meal split
 function computeMealTargets(p){
   var kg=p.weight_kg||(p.weight_lb*0.4536);
@@ -711,6 +739,9 @@ function loadData(){
       if(!d.rehab.log)d.rehab.log=[];
       if(!d.martial)d.martial={log:[]};
       if(!d.martial.log)d.martial.log=[];
+      if(!d.hyrox)d.hyrox={sessions:[],prs:{}};
+      if(!d.hyrox.sessions)d.hyrox.sessions=[];
+      if(!d.hyrox.prs)d.hyrox.prs={};
       return d;
     }
   }catch(e){}
@@ -781,6 +812,7 @@ var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
 var rehabPickerCat=null;
 var trainSub="sprint",insightsSub="progress",adminSub="settings";
+var hyroxPickType=null;
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -1868,10 +1900,11 @@ function pillBar(items,currentVal,onChange){
 // Parent: training-mode tabs
 function renderTrain(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["sprint","SPRINT"],["rehab","REHAB"],["martial","MARTIAL"]],trainSub,function(v){trainSub=v;render();}));
+  wrap.appendChild(pillBar([["sprint","SPRINT"],["rehab","REHAB"],["martial","MARTIAL"],["hyrox","HYROX"]],trainSub,function(v){trainSub=v;render();}));
   if(trainSub==="sprint")wrap.appendChild(renderSprint());
   else if(trainSub==="rehab")wrap.appendChild(renderRehab());
   else if(trainSub==="martial")wrap.appendChild(renderMartial());
+  else if(trainSub==="hyrox")wrap.appendChild(renderHyrox());
   return wrap;
 }
 
@@ -1890,6 +1923,229 @@ function renderAdmin(){
   wrap.appendChild(pillBar([["settings","SETTINGS"],["data","DATA"]],adminSub,function(v){adminSub=v;render();}));
   if(adminSub==="settings")wrap.appendChild(renderSettings());
   else if(adminSub==="data")wrap.appendChild(renderData());
+  return wrap;
+}
+
+function renderHyrox(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var sex=(D.meals&&D.meals.profile&&D.meals.profile.sex)||"M";
+
+  // current = most recent unfinished session
+  var current=null;
+  for(var i=D.hyrox.sessions.length-1;i>=0;i--){
+    if(!D.hyrox.sessions[i].done){current=D.hyrox.sessions[i];break;}
+  }
+
+  function loadStr(st){
+    if(!st.load_m)return"";
+    var w=(sex==="F"&&st.load_f)?st.load_f:st.load_m;
+    return w+"kg"+(st.load_each?" each":"");
+  }
+
+  // PR card
+  function prCard(){
+    var c=card();
+    c.appendChild(lbl("Personal Records"));
+    // Station PRs
+    for(var i=0;i<HYROX_STATIONS.length;i++){
+      var st=HYROX_STATIONS[i];
+      var key="station_"+st.id;
+      var pr=D.hyrox.prs[key];
+      var unitLabel=st.metric==="reps"?(st.target+" reps"):(st.target+st.unit);
+      var loadLabel=loadStr(st);
+      var leftText=st.name+"  ("+unitLabel+(loadLabel?", "+loadLabel:"")+")";
+      var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+      row.appendChild(mk("span",{color:Ci},leftText));
+      row.appendChild(mk("span",{color:pr?Ci:Cm},pr?(fmtSec(pr.time_s)+"  ·  "+pr.date):"—"));
+      c.appendChild(row);
+    }
+    // Run PRs (1km is the canonical Hyrox run; others nice-to-have)
+    [1000,400].forEach(function(d){
+      var key="run_"+d;
+      var pr=D.hyrox.prs[key];
+      var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+      row.appendChild(mk("span",{color:Ci},d+"m run"));
+      row.appendChild(mk("span",{color:pr?Ci:Cm},pr?(fmtSec(pr.time_s)+"  ·  "+pr.date):"—"));
+      c.appendChild(row);
+    });
+    return c;
+  }
+
+  // History
+  function histCard(){
+    var c=card();
+    c.appendChild(lbl("Recent Sessions"));
+    var count=0;
+    for(var i=D.hyrox.sessions.length-1;i>=0 && count<8;i--){
+      var s=D.hyrox.sessions[i];
+      if(!s.done)continue;count++;
+      var typ=hyroxTypeById(s.type);var label=typ?typ.label:s.type;
+      var total=0;for(var j=0;j<s.segments.length;j++)total+=(s.segments[j].time_s||0);
+      var sRow=dv({padding:"6px 0",borderBottom:"1px dotted "+Cm});
+      var top=dv({display:"flex",justifyContent:"space-between",fontFamily:FB,fontSize:"11px"});
+      top.appendChild(mk("span",{color:Ci},s.date+"  ·  "+label));
+      top.appendChild(mk("span",{color:Cm},s.segments.length+" seg · "+fmtSec(total)));
+      sRow.appendChild(top);
+      if(s.notes)sRow.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"2px"},"\""+s.notes+"\""));
+      c.appendChild(sRow);
+    }
+    if(count===0)c.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No completed sessions yet."));
+    return c;
+  }
+
+  // ─── IN-PROGRESS SESSION ───
+  if(current){
+    var typ=hyroxTypeById(current.type)||{label:current.type,desc:""};
+    var hdr=card();
+    var hTop=dv({display:"flex",justifyContent:"space-between",alignItems:"center"});
+    hTop.appendChild(mk("div",{fontFamily:FH,fontSize:"15px",color:Ci},"IN PROGRESS · "+typ.label));
+    hTop.appendChild(stamp(current.segments.length+" segments",Cb));
+    hdr.appendChild(hTop);
+    hdr.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"4px"},current.date));
+    if(typ.desc)hdr.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginTop:"3px"},typ.desc));
+    if(current.notes)hdr.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci,marginTop:"3px"},"\""+current.notes+"\""));
+    wrap.appendChild(hdr);
+
+    // PR-tracking helper
+    function checkPR(key,time_s,date){
+      var pr=D.hyrox.prs[key];
+      if(!pr||time_s<pr.time_s){
+        D.hyrox.prs[key]={time_s:time_s,date:date,session_id:current.id};
+        return true;
+      }
+      return false;
+    }
+
+    // ADD RUN action
+    function addRun(){
+      var distStr=prompt("Distance (m)? Hyrox 1km default.","1000");
+      var dist=parseFloat(distStr);if(!dist)return;
+      var tStr=prompt("Time? (mm:ss or seconds)","");
+      var t=parseTimeStr(tStr);if(!t||isNaN(t))return;
+      var rpe=parseFloat(prompt("RPE (1-10)?","8"));
+      var note=prompt("Notes (optional):","");
+      current.segments.push({kind:"run",distance:dist,time_s:t,rpe:rpe||0,notes:note||""});
+      if(checkPR("run_"+dist,t,current.date))alert("NEW PR · "+dist+"m run in "+fmtSec(t));
+      saveData(D);render();
+    }
+    // ADD STATION action — caller passes station id
+    function addStation(stId){
+      var st=hyroxStationById(stId);if(!st)return;
+      var loadDefault=(sex==="F"&&st.load_f)?st.load_f:(st.load_m||0);
+      var loadStrIn=st.load_m?prompt("Load kg? "+(st.load_each?"(per hand)":""),loadDefault):null;
+      var loadOverride=loadStrIn?parseFloat(loadStrIn):loadDefault;
+      var amount;
+      if(st.metric==="reps"){
+        var rStr=prompt("Reps? ("+st.target+" target)",st.target);
+        amount=parseInt(rStr,10);if(!amount)return;
+      } else {
+        var dStr=prompt("Distance m? ("+st.target+" target)",st.target);
+        amount=parseFloat(dStr);if(!amount)return;
+      }
+      var tStr=prompt("Time? (mm:ss or seconds)","");
+      var t=parseTimeStr(tStr);if(!t||isNaN(t))return;
+      var rpe=parseFloat(prompt("RPE (1-10)?","9"));
+      var note=prompt("Notes (optional):","");
+      current.segments.push({kind:"station",station_id:stId,amount:amount,unit:st.unit,load_kg:loadOverride||null,time_s:t,rpe:rpe||0,notes:note||""});
+      // PR only if at standard amount (target)
+      if(amount===st.target && checkPR("station_"+stId,t,current.date))alert("NEW PR · "+st.name+" in "+fmtSec(t));
+      saveData(D);render();
+    }
+
+    // Action buttons
+    var actRow=dv({display:"flex",gap:"6px",margin:"4px 0"});
+    var runBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"+ ADD RUN");
+    runBtn.addEventListener("click",addRun);
+    actRow.appendChild(runBtn);
+    var endBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Cr,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"END SESSION");
+    endBtn.addEventListener("click",function(){current.done=true;hyroxPickType=null;saveData(D);render();});
+    actRow.appendChild(endBtn);
+    var cancBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"CANCEL");
+    cancBtn.addEventListener("click",function(){
+      if(!confirm("Discard the current in-progress session?"))return;
+      for(var k=D.hyrox.sessions.length-1;k>=0;k--){if(!D.hyrox.sessions[k].done){D.hyrox.sessions.splice(k,1);break;}}
+      saveData(D);render();
+    });
+    actRow.appendChild(cancBtn);
+    wrap.appendChild(actRow);
+
+    // Station chip picker (8 chips for the 8 stations)
+    var stCard=card();
+    stCard.appendChild(lbl("Add Station Segment"));
+    var stRow=dv({display:"flex",flexWrap:"wrap",gap:"4px"});
+    for(var i=0;i<HYROX_STATIONS.length;i++){
+      (function(st){
+        var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.05em",color:Ci,background:"transparent",border:"1px solid "+Cm,padding:"6px 10px",borderRadius:"2px",cursor:"pointer"},st.name);
+        b.addEventListener("click",function(){addStation(st.id);});
+        stRow.appendChild(b);
+      })(HYROX_STATIONS[i]);
+    }
+    stCard.appendChild(stRow);
+    wrap.appendChild(stCard);
+
+    // Segments list
+    var segCard=card();
+    segCard.appendChild(lbl("Segments · "+current.segments.length));
+    if(current.segments.length===0){
+      segCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No segments yet — tap ADD RUN or a station chip."));
+    }else{
+      var totalSec=0;
+      for(var i=0;i<current.segments.length;i++){
+        var seg=current.segments[i];totalSec+=seg.time_s||0;
+        var label;
+        if(seg.kind==="run")label=seg.distance+"m run";
+        else{var st=hyroxStationById(seg.station_id);label=(st?st.name:seg.station_id)+"  "+seg.amount+(seg.unit==="reps"?" reps":"m")+(seg.load_kg?"  @"+seg.load_kg+"kg":"");}
+        var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+        row.appendChild(mk("span",{color:seg.kind==="run"?Cb:Ci},"#"+(i+1)+"  "+label));
+        row.appendChild(mk("span",{color:Ci},fmtSec(seg.time_s)+"  ·  RPE "+seg.rpe+(seg.notes?"  ·  "+seg.notes:"")));
+        segCard.appendChild(row);
+      }
+      var totRow=dv({display:"flex",justifyContent:"space-between",padding:"6px 0 0",fontFamily:FB,fontSize:"11px",fontWeight:"bold"});
+      totRow.appendChild(mk("span",{color:Ci},"TOTAL"));
+      totRow.appendChild(mk("span",{color:Ci},fmtSec(totalSec)));
+      segCard.appendChild(totRow);
+    }
+    wrap.appendChild(segCard);
+
+    wrap.appendChild(prCard());
+    wrap.appendChild(histCard());
+    return wrap;
+  }
+
+  // ─── START NEW SESSION ───
+  var startCard=card();
+  startCard.appendChild(lbl("Start a Session"));
+  startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px",marginTop:"4px"},"Type"));
+  var typeRow=dv({display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"6px"});
+  for(var i=0;i<HYROX_TYPES.length;i++){
+    (function(t){
+      var active=hyroxPickType===t.id;
+      var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},t.label);
+      b.addEventListener("click",function(){hyroxPickType=t.id;render();});
+      typeRow.appendChild(b);
+    })(HYROX_TYPES[i]);
+  }
+  startCard.appendChild(typeRow);
+  if(hyroxPickType)startCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginBottom:"10px"},hyroxTypeById(hyroxPickType).desc));
+
+  var canStart=!!hyroxPickType;
+  var startBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"12px",letterSpacing:"0.2em",padding:"14px",background:canStart?Ci:Cm,color:Cs,border:"none",borderRadius:"2px",cursor:canStart?"pointer":"default",opacity:canStart?"1":"0.55"},
+    canStart?("START "+hyroxTypeById(hyroxPickType).label.toUpperCase()):"PICK A TYPE FIRST");
+  if(canStart){
+    startBtn.addEventListener("click",function(){
+      var notes=prompt("Session notes (optional):","");
+      var d=new Date();
+      var iso=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+      var hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+      D.hyrox.sessions.push({id:d.getTime(),date:iso,time:hm,type:hyroxPickType,notes:notes||"",segments:[],done:false});
+      saveData(D);render();
+    });
+  }
+  startCard.appendChild(startBtn);
+  wrap.appendChild(startCard);
+
+  wrap.appendChild(prCard());
+  wrap.appendChild(histCard());
   return wrap;
 }
 
