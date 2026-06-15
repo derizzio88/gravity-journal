@@ -1770,6 +1770,24 @@ function buildTrainingContext(){
     ctx.hyrox={prs:hPrs,lastSession:lastHy?{date:lastHy.date,type:lastHy.type,segments:lastHy.segments.length,totalTime:fmtSec(hTotal)}:null,totalSessions:d.hyrox.sessions.filter(function(s){return s.done;}).length};
   }
 
+  // Archetype: current axes, target axes, match %, lagging axis
+  if(typeof computeArchetypeAxes==="function"){
+    var curAx=computeArchetypeAxes(d);
+    var archId=d.archetype||"striker";
+    var arch=archetypeById(archId);
+    var match=computeArchetypeMatch(curAx,arch.axes);
+    var keys=["RS","PO","MM","LN","FX","SK"];
+    var lagAxis=null,lagGap=0;
+    for(var i=0;i<keys.length;i++){var g=(arch.axes[keys[i]]||0)-(curAx[keys[i]]||0);if(g>lagGap){lagGap=g;lagAxis=keys[i];}}
+    ctx.archetype={
+      targeting:arch.name,
+      current:curAx,
+      target:arch.axes,
+      matchPct:match,
+      laggingAxis:lagAxis?{axis:lagAxis,label:ARCH_AXIS_LABELS[lagAxis],gap:lagGap}:null
+    };
+  }
+
   return ctx;
 }
 
