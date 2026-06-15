@@ -1585,6 +1585,70 @@ function buildTrainingContext(){
   ctx.pullSets7d = pullSets;
   ctx.pushPullRatio = pullSets>0?Math.round((pushSets/pullSets)*10)/10:null;
 
+  // ── Extended modules: MEALS / SUPPS / REHAB / MARTIAL / SPRINT / HYROX ───
+  var todayK=todayKey();
+  var weekAgoTs=now-6*86400000;
+
+  if(d.meals){
+    var tlog=d.meals.log.filter(function(L){return L.date===todayK;});
+    var mSum={kcal:0,p:0,c:0,f:0};for(var i=0;i<tlog.length;i++){mSum.kcal+=tlog[i].kcal;mSum.p+=tlog[i].p;mSum.c+=tlog[i].c;mSum.f+=tlog[i].f;}
+    var mT=computeMealTargets(d.meals.profile);
+    var ifday=d.meals["if"][todayK]||{};
+    ctx.meals={
+      targets:{kcal:mT.kcal,p:mT.p,c:mT.c,f:mT.f},
+      consumedToday:mSum,
+      mealsLoggedToday:tlog.length,
+      ifWindowOpen:!!(ifday.start_ts&&!ifday.end_ts),
+      ifWindowH:d.meals.profile.if_window_h,
+      mealsPerWindow:d.meals.meals_per_window,
+      rotation:d.meals.rotation.map(function(rid){var r=recById(rid);return r?r.name:rid;}),
+      weightLb:d.meals.profile.weight_lb,
+      currentBfPct:d.meals.profile.bf_pct,
+      targetBfPct:d.meals.profile.target_bf_pct,
+      proteinGPerLb:d.meals.profile.protein_g_per_lb,
+      cutDeficit:d.meals.profile.deficit_kcal,
+      lbmLb:mT.lbm_lb,
+      targetWeightLb:mT.target_weight_lb,
+      fatToLoseLb:mT.fat_to_lose_lb
+    };
+  }
+
+  if(d.supps){
+    var sDoses={};
+    for(var i=0;i<d.supps.log.length;i++){if(d.supps.log[i].date===todayK){var sid=d.supps.log[i].supp_id;sDoses[sid]=(sDoses[sid]||0)+d.supps.log[i].dose;}}
+    var stack=[];
+    for(var i=0;i<d.supps.active.length;i++){var s=suppById(d.supps.active[i]);if(s){var t=sDoses[s.id]||0;stack.push({name:s.name,target:s.dose+" "+s.unit,takenToday:t+" "+s.unit,hitTarget:t>=s.dose});}}
+    ctx.supps={activeStack:stack};
+  }
+
+  if(d.rehab){
+    var rDoneToday={};
+    for(var i=0;i<d.rehab.log.length;i++){if(d.rehab.log[i].date===todayK)rDoneToday[d.rehab.log[i].cat]=true;}
+    var rehabCur=[];
+    for(var i=0;i<AF.length;i++){var ex=afExerciseById(AF[i].id,d.rehab.current[AF[i].id]);rehabCur.push({category:AF[i].label,working:ex?ex.name:null,level:ex?ex.level:null,touchedToday:!!rDoneToday[AF[i].id],daily:!!AF[i].daily});}
+    ctx.rehab={currentExercises:rehabCur,categoriesTouchedToday:Object.keys(rDoneToday).length,totalCategories:AF.length};
+  }
+
+  if(d.martial){
+    var mMin=0,mCnt=0;
+    for(var i=0;i<d.martial.log.length;i++){var t=new Date(d.martial.log[i].date+"T00:00:00").getTime();if(t>=weekAgoTs){mMin+=d.martial.log[i].duration_min;mCnt++;}}
+    ctx.martial={hoursThisWeek:Math.round(mMin/60*10)/10,sessionsThisWeek:mCnt,totalSessions:d.martial.log.length};
+  }
+
+  if(d.sprint){
+    var sPrs=[];for(var k in d.sprint.prs)sPrs.push({distance:k+"m",time:d.sprint.prs[k].time+"s",date:d.sprint.prs[k].date});
+    sPrs.sort(function(a,b){return parseInt(a.distance)-parseInt(b.distance);});
+    var lastSp=null;for(var i=d.sprint.sessions.length-1;i>=0;i--){if(d.sprint.sessions[i].done){lastSp=d.sprint.sessions[i];break;}}
+    ctx.sprint={prs:sPrs,lastSession:lastSp?{date:lastSp.date,type:lastSp.type,surface:lastSp.surface,reps:lastSp.reps.length}:null,totalSessions:d.sprint.sessions.filter(function(s){return s.done;}).length};
+  }
+
+  if(d.hyrox){
+    var hPrs=[];for(var k in d.hyrox.prs)hPrs.push({key:k,time:fmtSec(d.hyrox.prs[k].time_s),date:d.hyrox.prs[k].date});
+    var lastHy=null;for(var i=d.hyrox.sessions.length-1;i>=0;i--){if(d.hyrox.sessions[i].done){lastHy=d.hyrox.sessions[i];break;}}
+    var hTotal=0;if(lastHy)for(var i=0;i<lastHy.segments.length;i++)hTotal+=lastHy.segments[i].time_s||0;
+    ctx.hyrox={prs:hPrs,lastSession:lastHy?{date:lastHy.date,type:lastHy.type,segments:lastHy.segments.length,totalTime:fmtSec(hTotal)}:null,totalSessions:d.hyrox.sessions.filter(function(s){return s.done;}).length};
+  }
+
   return ctx;
 }
 
@@ -2984,7 +3048,7 @@ function renderCoach(){
       balance: "Analyze my push/pull structural balance."+NL+NL+"My training context:"+NL+ctxJson+NL+NL+"Please:"+NL+"1. Assess my push/pull set ratio (OG recommends 1:1, with extra horizontal pulling for shoulder health)"+NL+"2. Check if I am training OG-recommended prehab movements (back lever for shoulder ext, L-sit for core)"+NL+"3. Identify dangerous imbalances (OG author injured his shoulder from too much push)"+NL+"4. Give specific prescription to correct any imbalances"+NL+"5. Flag exercises to prioritize or deprioritize based on my current levels"
     };
 
-    var sysPrompt = "You are an expert bodyweight strength coach with deep knowledge of Steven Low's Overcoming Gravity 2nd Edition methodology. You have access to the athlete's real training data. Key OG principles to apply: SAID principle, structural balance (push:pull ratio critical for shoulder health), linear progression from beginner through advanced, isometric holds use 1 rep = 2s formula at 60-75% max hold time, eccentrics are tools for progressions not yet achieved concentrically, full-body routines recommended for beginners/intermediate. SESSION STRUCTURE (sequence matters): (1) MOBILITY/FLEXIBILITY goes in the warm-up as active mobility (prep, not fatigue) and should also be trained daily outside sessions per 'use it or lose it'; static/loaded stretching belongs at the end when warm and fatigued. (2) PLYOMETRIC/POWER work goes early while the CNS is fresh: low-rep, full 3-min rest, NOT to failure — quality over quantity. (3) STRENGTH work is the core. (4) CONTROL/TEMPO work (fine motor control, intra-set holds, partial-range tension) is fatiguing skill-strength done in the strength block or as cool-down. The athlete's goal is aesthetics, mastery of OG movements, and a Baki/Yujiro-style profile: fine muscular control, active flexibility with end-range strength, explosive power, and low body fat — not size for its own sake. Be direct, specific, and reference their actual numbers and exercises. No generic advice.";
+    var sysPrompt = "You are an expert performance coach for a multi-discipline athlete. Calisthenics core methodology is Steven Low's Overcoming Gravity 2nd Edition (OG2). You have access to the athlete's real training data across SIX domains: (1) CALISTHENICS — OG2 progressions; SAID, structural balance (push:pull), linear progression, iso 1-rep = 2s at 60-75% max hold, eccentrics as bridge tools, full-body for beginners. SESSION STRUCTURE: mobility warm-up → power/plyo (CNS-fresh, low-rep, 3-min rest, NOT to failure) → strength core → control/tempo cool-down. (2) SPRINT — masters T&F + Hyrox prep. Track 1RM-equivalent PRs per distance (20/40/60/100/200/400/800/1000/1600m); types include accel / max_v / fly / tempo / hill / resisted / hyrox-1k. (3) ANKLE-FOOT REHAB — six categories (intrinsics, dorsiflexors, plantarflexors, ankle mobility, balance, plyo). Daily-maintenance categories should be touched most days; strength uses progression ladders. Alfredson eccentric protocol (3×15 BID, both straight + bent knee) is the gold standard for Achilles. (4) MARTIAL ARTS — tracked as time only (separate training program). Just visibility. (5) HYROX — 8 stations + 1km runs. PRs per station at standard target. (6) MEALS + IF — pescatarian-first rotation, 18:6 floating window, macros from Mifflin-St Jeor → cut deficit → P/F/C split → per-meal split. Supplement stack: creatine, caffeine+theanine, whey, omega-3, vit D, magnesium, melatonin. ATHLETE GOAL: lean year-round (single-digit BF), Baki/Yujiro physique = the STRIKER archetype (high Power Output + Leanness, mid-high Relative Strength + Flexibility, moderate Muscle Mass + Skill). Multi-domain readiness, masters T&F competition, Hyrox events. Be direct, specific, and reference their actual numbers and exercises. Note interactions across domains (e.g. a heavy sprint day affects calisthenics readiness; an IF window violation affects recovery; tib weakness limits sprint progression). No generic advice.";
 
     callClaude(prompts[coachState.mode], sysPrompt, function(err, text){
       coachState.loading=false;
