@@ -743,10 +743,11 @@ function loadData(){
       if(!d.hyrox.sessions)d.hyrox.sessions=[];
       if(!d.hyrox.prs)d.hyrox.prs={};
       if(!d.archetype)d.archetype="striker";
+      if(!d.uiState)d.uiState={};
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker"};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -810,9 +811,12 @@ function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.n
 
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
-var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
+var mealsSub=(D.uiState&&D.uiState.mealsSub)||"today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
 var rehabPickerCat=null;
-var trainSub="sprint",insightsSub="progress",adminSub="settings",bodySub="scan";
+var trainSub=(D.uiState&&D.uiState.trainSub)||"sprint",insightsSub=(D.uiState&&D.uiState.insightsSub)||"progress",adminSub=(D.uiState&&D.uiState.adminSub)||"settings",bodySub=(D.uiState&&D.uiState.bodySub)||"scan";
+
+// Persist sub-tab choice so reopening the app returns to where you left off
+function persistUiState(){if(!D.uiState)D.uiState={};D.uiState.trainSub=trainSub;D.uiState.insightsSub=insightsSub;D.uiState.adminSub=adminSub;D.uiState.bodySub=bodySub;D.uiState.mealsSub=mealsSub;saveData(D);}
 var hyroxPickType=null;
 
 // ── ARCHETYPE SYSTEM (PRD §7) ───────────────────────────────────────────────
@@ -2103,7 +2107,7 @@ function pillBar(items,currentVal,onChange){
 // Parent: training-mode tabs
 function renderTrain(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["sprint","SPRINT"],["rehab","REHAB"],["martial","MARTIAL"],["hyrox","HYROX"]],trainSub,function(v){trainSub=v;render();}));
+  wrap.appendChild(pillBar([["sprint","SPRINT"],["rehab","REHAB"],["martial","MARTIAL"],["hyrox","HYROX"]],trainSub,function(v){trainSub=v;persistUiState();render();}));
   if(trainSub==="sprint")wrap.appendChild(renderSprint());
   else if(trainSub==="rehab")wrap.appendChild(renderRehab());
   else if(trainSub==="martial")wrap.appendChild(renderMartial());
@@ -2114,7 +2118,7 @@ function renderTrain(){
 // Parent: body composition + archetype radar
 function renderBodyParent(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["scan","SCAN"],["archetype","ARCHETYPE"]],bodySub,function(v){bodySub=v;render();}));
+  wrap.appendChild(pillBar([["scan","SCAN"],["archetype","ARCHETYPE"]],bodySub,function(v){bodySub=v;persistUiState();render();}));
   if(bodySub==="scan")wrap.appendChild(renderBody());
   else if(bodySub==="archetype")wrap.appendChild(renderArchetype());
   return wrap;
@@ -2205,7 +2209,7 @@ function renderArchetype(){
 // Parent: progression + session history
 function renderInsights(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["progress","CHARTS"],["history","HISTORY"]],insightsSub,function(v){insightsSub=v;render();}));
+  wrap.appendChild(pillBar([["progress","CHARTS"],["history","HISTORY"]],insightsSub,function(v){insightsSub=v;persistUiState();render();}));
   if(insightsSub==="progress")wrap.appendChild(renderProgress());
   else if(insightsSub==="history")wrap.appendChild(renderHistory());
   return wrap;
@@ -2214,7 +2218,7 @@ function renderInsights(){
 // Parent: settings + data/backup
 function renderAdmin(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["settings","SETTINGS"],["data","DATA"]],adminSub,function(v){adminSub=v;render();}));
+  wrap.appendChild(pillBar([["settings","SETTINGS"],["data","DATA"]],adminSub,function(v){adminSub=v;persistUiState();render();}));
   if(adminSub==="settings")wrap.appendChild(renderSettings());
   else if(adminSub==="data")wrap.appendChild(renderData());
   return wrap;
@@ -2656,7 +2660,7 @@ function renderMeals(){
     (function(sub){
       var active=mealsSub===sub[0];
       var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"5px 14px",borderRadius:"2px",cursor:"pointer"},sub[1]);
-      b.addEventListener("click",function(){mealsSub=sub[0];render();});
+      b.addEventListener("click",function(){mealsSub=sub[0];persistUiState();render();});
       subnav.appendChild(b);
     })(subs[i]);
   }
