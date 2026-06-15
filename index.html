@@ -742,10 +742,11 @@ function loadData(){
       if(!d.hyrox)d.hyrox={sessions:[],prs:{}};
       if(!d.hyrox.sessions)d.hyrox.sessions=[];
       if(!d.hyrox.prs)d.hyrox.prs={};
+      if(!d.archetype)d.archetype="striker";
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker"};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -811,8 +812,127 @@ var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var mealsSub="today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
 var rehabPickerCat=null;
-var trainSub="sprint",insightsSub="progress",adminSub="settings";
+var trainSub="sprint",insightsSub="progress",adminSub="settings",bodySub="scan";
 var hyroxPickType=null;
+
+// ── ARCHETYPE SYSTEM (PRD §7) ───────────────────────────────────────────────
+// Six axes 0-100. Values per PRD §7.3 mapped from qualitative descriptors:
+// Very High=95, High=75, Med-High=65, Med=50, Low=30
+var ARCHETYPES=[
+ {id:"striker",  name:"The Striker",   axes:{RS:75,PO:95,MM:50,LN:80,FX:70,SK:50}, feel:"Lean, explosive, striated power (the Baki target)."},
+ {id:"colossus", name:"The Colossus",  axes:{RS:75,PO:50,MM:95,LN:50,FX:30,SK:30}, feel:"Raw mass and force."},
+ {id:"ascetic",  name:"The Ascetic",   axes:{RS:75,PO:50,MM:30,LN:80,FX:95,SK:95}, feel:"Skill + control on a lean frame."},
+ {id:"sovereign",name:"The Sovereign", axes:{RS:65,PO:65,MM:65,LN:65,FX:50,SK:65}, feel:"Balanced aesthetic all-rounder."},
+ {id:"phantom",  name:"The Phantom",   axes:{RS:50,PO:80,MM:30,LN:95,FX:70,SK:50}, feel:"Agile, lean, athletic."}
+];
+var ARCH_AXIS_LABELS={RS:"Relative Strength",PO:"Power Output",MM:"Muscle Mass",LN:"Leanness",FX:"Flexibility",SK:"Skill Mastery"};
+function archetypeById(id){for(var i=0;i<ARCHETYPES.length;i++){if(ARCHETYPES[i].id===id)return ARCHETYPES[i];}return ARCHETYPES[0];}
+
+// Compute the athlete's current axis values from real data
+function computeArchetypeAxes(d){
+  var ax={RS:0,PO:0,MM:0,LN:0,FX:0,SK:0};
+
+  // RS: average current OG progression level across structural categories, scaled by 12 (Lvl 12 ≈ peak)
+  var coreKeys=["push","pull","backlever","handstand","lsit","dip_mu","squat"];
+  var rsSum=0,rsN=0;
+  for(var i=0;i<coreKeys.length;i++){
+    var pId=d.progressions&&d.progressions[coreKeys[i]];
+    if(!pId)continue;var ex=findEx(coreKeys[i],pId);if(ex){rsSum+=ex.level;rsN++;}
+  }
+  if(rsN>0)ax.RS=Math.min(100,Math.round(rsSum/rsN/12*100));
+
+  // PO: blend sprint 40m PR (4.5s→100, 6.5s→0) + OG plyo level + foot-rehab plyo level
+  var poVals=[];
+  if(d.sprint&&d.sprint.prs){
+    var pr=d.sprint.prs["40"];
+    if(pr&&pr.time)poVals.push(Math.max(0,Math.min(100,(6.5-pr.time)/2*100)));
+  }
+  if(d.progressions&&d.progressions.plyo){var ex=findEx("plyo",d.progressions.plyo);if(ex)poVals.push(Math.min(100,ex.level/6*100));}
+  if(d.rehab&&d.rehab.current&&d.rehab.current.af_plyo){var ex=afExerciseById("af_plyo",d.rehab.current.af_plyo);if(ex)poVals.push(Math.min(100,ex.level/7*100));}
+  if(poVals.length>0){var s=0;for(var i=0;i<poVals.length;i++)s+=poVals[i];ax.PO=Math.round(s/poVals.length);}
+
+  // Pull body stats: prefer latest Hume scan, fall back to profile
+  var weightLb,bfPct,heightIn;
+  if(d.bodyComp&&d.bodyComp.length>0){var bc=d.bodyComp[d.bodyComp.length-1];if(bc.weight)weightLb=bc.weight;if(bc.bf_pct)bfPct=bc.bf_pct;}
+  if((!weightLb||!bfPct)&&d.meals&&d.meals.profile){var p=d.meals.profile;if(!weightLb)weightLb=p.weight_lb;if(!bfPct)bfPct=p.bf_pct;heightIn=p.height_in;}
+
+  // MM: FFMI-based. FFMI 17→0, 22→70, 25→100 (rough natural-cap scale)
+  if(weightLb&&bfPct&&heightIn){
+    var lbm_kg=weightLb*(1-bfPct/100)*0.4536;
+    var h_m=heightIn*0.0254;
+    var ffmi=lbm_kg/(h_m*h_m);
+    ax.MM=Math.max(0,Math.min(100,Math.round((ffmi-17)*100/8)));
+  }
+  // LN: 25% BF→0, 5% BF→100 linear
+  if(bfPct)ax.LN=Math.max(0,Math.min(100,Math.round((25-bfPct)/20*100)));
+
+  // FX: OG mobility category level (max ~8)
+  if(d.progressions&&d.progressions.mobility){var ex=findEx("mobility",d.progressions.mobility);if(ex)ax.FX=Math.min(100,Math.round(ex.level/8*100));}
+
+  // SK: count of "peak" progressions (.p:1 flag) owned across all OG categories
+  var ownedPeaks=0,totalPeaks=0;
+  var ogKeys=Object.keys(OG);
+  for(var i=0;i<ogKeys.length;i++){
+    var cat=OG[ogKeys[i]];
+    for(var j=0;j<cat.progressions.length;j++){if(cat.progressions[j].p)totalPeaks++;}
+    var pId=d.progressions&&d.progressions[ogKeys[i]];
+    if(pId){var ex=findEx(ogKeys[i],pId);if(ex&&ex.p)ownedPeaks++;}
+  }
+  if(totalPeaks>0)ax.SK=Math.min(100,Math.round(ownedPeaks/totalPeaks*200));
+  return ax;
+}
+
+// Match % = inverse RMS distance, 100 = identical
+function computeArchetypeMatch(current,target){
+  var keys=["RS","PO","MM","LN","FX","SK"];
+  var sum=0;for(var i=0;i<keys.length;i++){var d=(current[keys[i]]||0)-(target[keys[i]]||0);sum+=d*d;}
+  return Math.max(0,Math.round(100-Math.sqrt(sum/keys.length)));
+}
+
+// Potential Profile arithmetic (PRD Appendix C)
+function computePotentialProfile(p){
+  var weight_kg=p.weight_lb*0.4536, h_m=p.height_in*0.0254;
+  var lbm_kg=weight_kg*(1-p.bf_pct/100);
+  var target_weight_kg=lbm_kg/(1-p.target_bf_pct/100);
+  var ffmi=lbm_kg/(h_m*h_m);
+  // Natural-trained ceiling reference ~25 normalized FFMI
+  var ceiling_lbm_kg=25*h_m*h_m;
+  return {
+    lbmLb:Math.round(lbm_kg*2.2046*10)/10,
+    targetWeightLb:Math.round(target_weight_kg*2.2046*10)/10,
+    fatToLoseLb:Math.round((weight_kg-target_weight_kg)*2.2046*10)/10,
+    ffmi:Math.round(ffmi*10)/10,
+    ceilingLbmLb:Math.round(ceiling_lbm_kg*2.2046*10)/10,
+    headroomLb:Math.round((ceiling_lbm_kg-lbm_kg)*2.2046*10)/10
+  };
+}
+
+// SVG hexagonal radar with target overlay
+function buildRadarSvg(current,target){
+  var size=300,cx=size/2,cy=size/2,r=100;
+  var labels=["RS","PO","MM","LN","FX","SK"];
+  function pt(idx,val){var a=(idx*60-90)*Math.PI/180;return{x:cx+Math.cos(a)*r*val/100,y:cy+Math.sin(a)*r*val/100};}
+  var s='<svg viewBox="0 0 '+size+' '+size+'" style="width:100%;max-width:'+size+'px;display:block;margin:0 auto">';
+  // grid rings 25/50/75/100
+  for(var g=25;g<=100;g+=25){var pts=[];for(var i=0;i<6;i++){var p=pt(i,g);pts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}s+='<polygon points="'+pts.join(" ")+'" fill="none" stroke="#c9bfa8" stroke-width="0.5"/>';}
+  // axis spokes
+  for(var i=0;i<6;i++){var p=pt(i,100);s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x.toFixed(1)+'" y2="'+p.y.toFixed(1)+'" stroke="#c9bfa8" stroke-width="0.5"/>';}
+  // target polygon (archetype)
+  var tPts=[];for(var i=0;i<6;i++){var p=pt(i,target[labels[i]]||0);tPts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}
+  s+='<polygon points="'+tPts.join(" ")+'" fill="rgba(139,58,26,0.12)" stroke="#8b3a1a" stroke-width="1.5" stroke-dasharray="4,3"/>';
+  // current polygon
+  var cPts=[];for(var i=0;i<6;i++){var p=pt(i,current[labels[i]]||0);cPts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}
+  s+='<polygon points="'+cPts.join(" ")+'" fill="rgba(26,92,58,0.3)" stroke="#1a5c3a" stroke-width="2"/>';
+  // labels + current values
+  for(var i=0;i<6;i++){
+    var pl=pt(i,128);
+    s+='<text x="'+pl.x.toFixed(1)+'" y="'+pl.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Special Elite" font-size="11" fill="#2a2118">'+labels[i]+'</text>';
+    var pv=pt(i,114);
+    s+='<text x="'+pv.x.toFixed(1)+'" y="'+pv.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Courier Prime" font-size="9" fill="#1a5c3a" font-weight="bold">'+Math.round(current[labels[i]]||0)+'</text>';
+  }
+  s+='</svg>';
+  return s;
+}
 var restTimer=null,restStart=null,restDuration=0,restTarget=0,restForCat=null;
 function startRest(secs,catKey){
   if(restTimer)clearInterval(restTimer);
@@ -1064,7 +1184,8 @@ function render(){
   hdr.appendChild(sub);root.appendChild(hdr);
   // Title is "Parent · Sub" when in a parent tab so the user knows where they are
   var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
-  var subTitles={sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup"};
+  var subTitles={sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup",scan:"Body Composition",archetype:"Archetype Radar"};
+  if(VIEW==="body"&&subTitles[bodySub])titleText="Body · "+subTitles[bodySub];
   var titleText=titles[VIEW]||"Today's Workout";
   if(VIEW==="train"&&subTitles[trainSub])titleText+=" · "+subTitles[trainSub];
   else if(VIEW==="insights"&&subTitles[insightsSub])titleText+=" · "+subTitles[insightsSub];
@@ -1075,7 +1196,7 @@ function render(){
   else if(VIEW==="train")root.appendChild(renderTrain());
   else if(VIEW==="meals")root.appendChild(renderMeals());
   else if(VIEW==="insights")root.appendChild(renderInsights());
-  else if(VIEW==="body")root.appendChild(renderBody());
+  else if(VIEW==="body")root.appendChild(renderBodyParent());
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else if(VIEW==="admin")root.appendChild(renderAdmin());
   else root.appendChild(renderWod());
@@ -1969,6 +2090,97 @@ function renderTrain(){
   else if(trainSub==="rehab")wrap.appendChild(renderRehab());
   else if(trainSub==="martial")wrap.appendChild(renderMartial());
   else if(trainSub==="hyrox")wrap.appendChild(renderHyrox());
+  return wrap;
+}
+
+// Parent: body composition + archetype radar
+function renderBodyParent(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  wrap.appendChild(pillBar([["scan","SCAN"],["archetype","ARCHETYPE"]],bodySub,function(v){bodySub=v;render();}));
+  if(bodySub==="scan")wrap.appendChild(renderBody());
+  else if(bodySub==="archetype")wrap.appendChild(renderArchetype());
+  return wrap;
+}
+
+function renderArchetype(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var current=computeArchetypeAxes(D);
+  var arch=archetypeById(D.archetype);
+  var match=computeArchetypeMatch(current,arch.axes);
+
+  // Archetype selector
+  var selCard=card();
+  selCard.appendChild(lbl("Targeting"));
+  var selRow=dv({display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"6px",marginTop:"4px"});
+  for(var i=0;i<ARCHETYPES.length;i++){
+    (function(a){
+      var active=D.archetype===a.id;
+      var b=mk("button",{fontFamily:FB,fontSize:"10px",letterSpacing:"0.1em",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"4px 10px",borderRadius:"2px",cursor:"pointer"},a.name);
+      b.addEventListener("click",function(){D.archetype=a.id;saveData(D);render();});
+      selRow.appendChild(b);
+    })(ARCHETYPES[i]);
+  }
+  selCard.appendChild(selRow);
+  selCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic"},arch.feel));
+  wrap.appendChild(selCard);
+
+  // Radar
+  var radCard=card();
+  var hdrRow=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"6px"});
+  hdrRow.appendChild(mk("div",{fontFamily:FH,fontSize:"14px",color:Ci},arch.name));
+  hdrRow.appendChild(mk("div",{fontFamily:FH,fontSize:"22px",color:Cg},match+"%"));
+  radCard.appendChild(hdrRow);
+  radCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,marginBottom:"6px"},"MATCH · solid = current · dashed = target"));
+  var svgHost=dv({});
+  svgHost.innerHTML=buildRadarSvg(current,arch.axes);
+  radCard.appendChild(svgHost);
+  wrap.appendChild(radCard);
+
+  // Per-axis breakdown
+  var axCard=card();
+  axCard.appendChild(lbl("Axis Breakdown"));
+  var keys=["RS","PO","MM","LN","FX","SK"];
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i];
+    var cv=current[k]||0,tv=arch.axes[k]||0,gap=tv-cv;
+    var row=dv({display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+    var ll=dv({});
+    ll.appendChild(mk("span",{color:Ci,fontWeight:"bold"},k+"  "));
+    ll.appendChild(mk("span",{color:Cm,fontSize:"10px"},ARCH_AXIS_LABELS[k]));
+    row.appendChild(ll);
+    var rr=mk("span",{color:gap>10?Cr:(gap<-10?Cb:Cg)},cv+" / "+tv+(gap>0?"  ↑"+gap:(gap<0?"  ↓"+Math.abs(gap):"  ✓")));
+    row.appendChild(rr);
+    axCard.appendChild(row);
+  }
+  // Surface the lagging axis as suggested focus
+  var lagAxis=null,lagGap=0;
+  for(var i=0;i<keys.length;i++){var k=keys[i];var g=(arch.axes[k]||0)-(current[k]||0);if(g>lagGap){lagGap=g;lagAxis=k;}}
+  if(lagAxis){
+    axCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cr,marginTop:"6px",fontStyle:"italic"},"Lagging axis: "+ARCH_AXIS_LABELS[lagAxis]+" (gap "+lagGap+"). Bias next block toward closing this."));
+  }
+  wrap.appendChild(axCard);
+
+  // Potential Profile (PRD §7.5)
+  if(D.meals&&D.meals.profile&&D.meals.profile.weight_lb){
+    var pp=computePotentialProfile(D.meals.profile);
+    var ppCard=card();
+    ppCard.appendChild(lbl("Potential Profile (grounded)"));
+    ppCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginBottom:"6px"},"Arithmetic on your real numbers, not fiction. Assumes LBM is preserved through the cut and adequate protein."));
+    function ppRow(label,val,unit){
+      var r=dv({display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+      r.appendChild(mk("span",{color:Cm},label));
+      r.appendChild(mk("span",{color:Ci,fontWeight:"bold"},val+(unit||"")));
+      return r;
+    }
+    ppCard.appendChild(ppRow("Current LBM",pp.lbmLb," lb"));
+    ppCard.appendChild(ppRow("Target weight @ "+D.meals.profile.target_bf_pct+"% BF",pp.targetWeightLb," lb"));
+    ppCard.appendChild(ppRow("Fat to lose (constant LBM)",pp.fatToLoseLb," lb"));
+    ppCard.appendChild(ppRow("Current FFMI",pp.ffmi,""));
+    ppCard.appendChild(ppRow("Natural ceiling (FFMI 25)",pp.ceilingLbmLb," lb LBM"));
+    ppCard.appendChild(ppRow("Headroom remaining",pp.headroomLb," lb"));
+    ppCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"6px"},"Ceiling = range, not destiny. Frame measurements (wrist + ankle) would tighten this — add in SETUP later."));
+    wrap.appendChild(ppCard);
+  }
   return wrap;
 }
 
