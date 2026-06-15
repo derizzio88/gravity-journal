@@ -708,7 +708,7 @@ function buildPlainList(picks){
 }
 
 var KEY="gravity_og_v4";
-var DEFAULT_MEALS_PROFILE={weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12};
+var DEFAULT_MEALS_PROFILE={weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12,wrist_in:0,ankle_in:0};
 function loadData(){
   try{
     var r=localStorage.getItem(KEY);
@@ -893,21 +893,35 @@ function computeArchetypeMatch(current,target){
   return Math.max(0,Math.round(100-Math.sqrt(sum/keys.length)));
 }
 
-// Potential Profile arithmetic (PRD Appendix C)
+// Potential Profile arithmetic (PRD Appendix C + Casey Butt frame model)
+// If wrist_in + ankle_in present: use Casey Butt formula
+//   maxLBM(lb) = H^1.5 × (√W/22.6667 + √A/17.0104) × (BF/224 + 1)
+//   evaluated at the user's target BF. This is the frame-based ceiling.
+// Otherwise: fall back to FFMI 25 reference (height-only proxy).
 function computePotentialProfile(p){
   var weight_kg=p.weight_lb*0.4536, h_m=p.height_in*0.0254;
   var lbm_kg=weight_kg*(1-p.bf_pct/100);
   var target_weight_kg=lbm_kg/(1-p.target_bf_pct/100);
   var ffmi=lbm_kg/(h_m*h_m);
-  // Natural-trained ceiling reference ~25 normalized FFMI
-  var ceiling_lbm_kg=25*h_m*h_m;
+  var ceiling_lbm_lb, ceilingSource;
+  if(p.wrist_in>0&&p.ankle_in>0&&p.height_in>0){
+    var H=p.height_in, W=p.wrist_in, A=p.ankle_in, BF=p.target_bf_pct||7;
+    ceiling_lbm_lb = Math.pow(H,1.5) * (Math.sqrt(W)/22.6667 + Math.sqrt(A)/17.0104) * (BF/224 + 1);
+    ceilingSource = "frame-based (Casey Butt, wrist "+W+'" + ankle '+A+'")';
+  } else {
+    var ceiling_lbm_kg = 25*h_m*h_m;
+    ceiling_lbm_lb = ceiling_lbm_kg*2.2046;
+    ceilingSource = "FFMI 25 reference (no frame data — add wrist + ankle for personalized estimate)";
+  }
   return {
     lbmLb:Math.round(lbm_kg*2.2046*10)/10,
     targetWeightLb:Math.round(target_weight_kg*2.2046*10)/10,
     fatToLoseLb:Math.round((weight_kg-target_weight_kg)*2.2046*10)/10,
     ffmi:Math.round(ffmi*10)/10,
-    ceilingLbmLb:Math.round(ceiling_lbm_kg*2.2046*10)/10,
-    headroomLb:Math.round((ceiling_lbm_kg-lbm_kg)*2.2046*10)/10
+    ceilingLbmLb:Math.round(ceiling_lbm_lb*10)/10,
+    headroomLb:Math.round((ceiling_lbm_lb-lbm_kg*2.2046)*10)/10,
+    ceilingSource:ceilingSource,
+    frameBased:!!(p.wrist_in>0&&p.ankle_in>0)
   };
 }
 
@@ -2198,9 +2212,32 @@ function renderArchetype(){
     ppCard.appendChild(ppRow("Target weight @ "+D.meals.profile.target_bf_pct+"% BF",pp.targetWeightLb," lb"));
     ppCard.appendChild(ppRow("Fat to lose (constant LBM)",pp.fatToLoseLb," lb"));
     ppCard.appendChild(ppRow("Current FFMI",pp.ffmi,""));
-    ppCard.appendChild(ppRow("Natural ceiling (FFMI 25)",pp.ceilingLbmLb," lb LBM"));
+    var ceilingLabel=pp.frameBased?"Frame-based LBM ceiling":"Reference LBM ceiling (FFMI 25)";
+    ppCard.appendChild(ppRow(ceilingLabel,pp.ceilingLbmLb," lb"));
     ppCard.appendChild(ppRow("Headroom remaining",pp.headroomLb," lb"));
-    ppCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"6px"},"Ceiling = range, not destiny. Frame measurements (wrist + ankle) would tighten this — add in SETUP later."));
+    ppCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"6px",fontStyle:"italic"},pp.ceilingSource));
+
+    // Inline frame-measurement editor
+    var frameWrap=dv({marginTop:"10px",paddingTop:"8px",borderTop:"1px dashed "+Cm});
+    frameWrap.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",letterSpacing:"0.12em",color:Cb,marginBottom:"4px"},"FRAME MEASUREMENTS"));
+    frameWrap.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginBottom:"6px"},"Measure with a tape — wrist around the joint at the styloid bone, ankle just above the malleoli. Plug them in once; they don't change."));
+    var fRow=dv({display:"flex",gap:"8px"});
+    function frameField(labelText,key){
+      var col=dv({flex:"1"});
+      col.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},labelText));
+      var inp=document.createElement("input");
+      inp.type="number";inp.step="0.1";inp.min="0";inp.placeholder="0.0";
+      inp.value=D.meals.profile[key]||"";
+      inp.style.cssText="width:100%;font-family:"+FH+";font-size:14px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:4px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+      inp.addEventListener("change",function(){var v=parseFloat(inp.value)||0;D.meals.profile[key]=v;saveData(D);render();});
+      col.appendChild(inp);
+      return col;
+    }
+    fRow.appendChild(frameField("Wrist (in)","wrist_in"));
+    fRow.appendChild(frameField("Ankle (in)","ankle_in"));
+    frameWrap.appendChild(fRow);
+    ppCard.appendChild(frameWrap);
+
     wrap.appendChild(ppCard);
   }
   return wrap;
