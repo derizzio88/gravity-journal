@@ -13,8 +13,13 @@ Function: `supabase/functions/coach/index.ts`
 
 ## Option A — Deploy via Supabase Dashboard (easier, no CLI)
 
+> ⚠️ **Don't confuse the two "Functions" sections.** Supabase has both:
+> - **Database → Functions** = Postgres SQL functions (NOT what you want — paste TS code here and it errors with `syntax error at or near "//"`)
+> - **Edge Functions** (in the left sidebar, separate from Database) = Deno/TypeScript serverless. This is what we want.
+
 1. Open https://supabase.com/dashboard/project/vvwwhykbqoedxdmtktiq/functions
-2. Click **"Create a new function"**
+   (This URL routes to **Edge Functions**, not Database Functions.)
+2. Click **"Create a new function"** (or "Deploy a new function")
 3. Name: `coach`
 4. Paste the contents of `supabase/functions/coach/index.ts` into the editor
 5. **Under "Verify JWT"** toggle it OFF. Public function — we use a shared-secret header instead.
