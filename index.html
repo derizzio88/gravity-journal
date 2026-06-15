@@ -461,7 +461,15 @@ var STEPS={
  creamy_shrimp_pasta:["Rinse + pat shrimp dry. Marinate with garlic, Italian herbs, paprika, salt, pepper, chili flakes, lemon.","Sear shrimp 3–4 minutes (flip halfway). Remove.","Same pan low heat: milk + cream cheese + parmesan + herbs + garlic powder + pasta water. Stir until creamy.","Add spinach + cooked pasta + shrimp. Toss until spinach wilts.","Garnish with parmesan/herbs. Serve immediately."],
  orange_pepper_chicken:["Trim excess fat from chicken thighs. Season with salt, pepper, garlic powder. Add honey, sriracha, orange juice + zest, soy sauce. Mix thoroughly — color should change. Marinate at least 30 min (a few hours better).","Slice salad veggies (cucumber, red onion, carrots, bell pepper, green onion), add sesame seeds, drizzle honey + rice vinegar. Mix, refrigerate.","Boil basmati rice 8–10 minutes. Drain.","Line sheet pan, spread chicken single-layer, add extra orange juice/zest + garlic powder + pepper on top. Air fry or oven bake 25–27 minutes @ 400°F / 200°C until golden and sizzling. Broil 2–3 minutes at end for crust.","Melt butter medium-low, add chopped garlic, cook 4 minutes. Fold cooked rice in, add parsley + salt + chili flakes.","Slice chicken into cubes, mix back with sheet pan juices (this IS the pan sauce — don't skip). Plate with garlic rice + cucumber salad."]
 };
-function recById(id){for(var i=0;i<REC.length;i++){if(REC[i].id===id)return REC[i];}return null;}
+function recById(id){
+  for(var i=0;i<REC.length;i++){if(REC[i].id===id)return REC[i];}
+  // Custom recipes saved by the user via MEALS · ROTATE → "+ Add custom recipe"
+  if(typeof D!=="undefined"&&D&&D.meals&&D.meals.custom_recipes){
+    for(var i=0;i<D.meals.custom_recipes.length;i++){if(D.meals.custom_recipes[i].id===id)return D.meals.custom_recipes[i];}
+  }
+  return null;
+}
+function allRecipes(){return REC.concat((D&&D.meals&&D.meals.custom_recipes)||[]);}
 
 // ── SUPPLEMENT STACK: short, evidence-grounded list ──────────────────────────
 var SUPP=[
@@ -738,6 +746,8 @@ function loadData(){
       if(!d.meals.prep_servings)d.meals.prep_servings=20;
       if(!d.meals["if"])d.meals["if"]={};
       if(!d.meals.log)d.meals.log=[];
+      if(!d.meals.custom_recipes)d.meals.custom_recipes=[];
+      if(!d.meals.activePrep)d.meals.activePrep=null;
       if(!d.supps)d.supps={active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]};
       if(!d.supps.active)d.supps.active=[];
       if(!d.supps.log)d.supps.log=[];
@@ -758,7 +768,7 @@ function loadData(){
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[],custom_recipes:[],activePrep:null},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -823,6 +833,9 @@ function markBackedUp(){localStorage.setItem("gravity_last_backup",String(Date.n
 var D=loadData(),VIEW="wod",wodDayIdx=null,completed={},logSets=[],progCat="push",setsCat="push";
 var sprintPickType=null,sprintPickSurface="track",sprintPickFatigue="fresh";
 var mealsSub=(D.uiState&&D.uiState.mealsSub)||"today",mealsRecipeId=null,mealsRecipeScale={},mealsPlanFormat="markdown",mealsPlanInput={};
+var mealsAddingCustom=false,customDraft={name:"",svg:4,kcal:"",p:"",c:"",f:"",protein_type:"salmon",note:""};
+var snapPreview=null;  // {name,kcal,p,c,f,confidence,notes,image_b64} after a /coach vision call
+var snapLoading=false;
 var rehabPickerCat=null;
 var trainSub=(D.uiState&&D.uiState.trainSub)||"sprint",insightsSub=(D.uiState&&D.uiState.insightsSub)||"progress",adminSub=(D.uiState&&D.uiState.adminSub)||"settings",bodySub=(D.uiState&&D.uiState.bodySub)||"scan";
 
@@ -2951,13 +2964,96 @@ function renderMealsToday(){
 
 function renderMealsRotate(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Tap to add or remove from this week's rotation. Order: salmon → shrimp → chicken."));
-  var groups=[["SALMON",function(r){return r.protein.type==="salmon";}],["SHRIMP",function(r){return r.protein.type==="shrimp";}],["CHICKEN (occasional)",function(r){return r.protein.type==="chicken";}]];
+  wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Tap to add or remove from this week's rotation. Order: salmon → shrimp → chicken → custom."));
+
+  // ── Custom recipe form / button ───────────────────────────────
+  if(mealsAddingCustom){
+    var fc=card();
+    fc.appendChild(lbl("New Custom Recipe"));
+    function customField(label,key,type,placeholder){
+      var row=dv({marginBottom:"8px"});
+      row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+      var inp=document.createElement(type==="textarea"?"textarea":"input");
+      if(type!=="textarea"){inp.type=type||"text";}
+      inp.placeholder=placeholder||"";
+      inp.value=customDraft[key]||"";
+      inp.style.cssText="width:100%;font-family:"+FB+";font-size:13px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;"+(type==="textarea"?"min-height:60px;resize:vertical;":"");
+      inp.addEventListener("input",function(){customDraft[key]=inp.value;});
+      row.appendChild(inp);
+      return row;
+    }
+    function customSelect(label,key,opts){
+      var row=dv({marginBottom:"8px"});
+      row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+      var sel=document.createElement("select");
+      sel.style.cssText="width:100%;font-family:"+FB+";font-size:13px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+      for(var i=0;i<opts.length;i++){var o=document.createElement("option");o.value=opts[i];o.textContent=opts[i];if(customDraft[key]===opts[i])o.selected=true;sel.appendChild(o);}
+      sel.addEventListener("change",function(){customDraft[key]=sel.value;});
+      row.appendChild(sel);
+      return row;
+    }
+    fc.appendChild(customField("Recipe name","name","text","e.g. Salmon poke bowl"));
+    var macroRow=dv({display:"flex",gap:"8px"});
+    macroRow.appendChild(customField("Base servings","svg","number","4"));
+    macroRow.appendChild(customField("Kcal/serving","kcal","number","500"));
+    fc.appendChild(macroRow);
+    var macroRow2=dv({display:"flex",gap:"8px"});
+    macroRow2.appendChild(customField("Protein g","p","number","40"));
+    macroRow2.appendChild(customField("Carbs g","c","number","50"));
+    macroRow2.appendChild(customField("Fat g","f","number","15"));
+    fc.appendChild(macroRow2);
+    fc.appendChild(customSelect("Protein type","protein_type",["salmon","shrimp","chicken","tuna","beef","custom"]));
+    fc.appendChild(customField("Note (optional)","note","textarea","tape-measure marinade time, storage notes, etc."));
+    var actRow=dv({display:"flex",gap:"6px",marginTop:"4px"});
+    var saveBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"SAVE RECIPE");
+    saveBtn.addEventListener("click",function(){
+      if(!customDraft.name||!customDraft.kcal||!customDraft.p){alert("Need at least name, kcal, and protein.");return;}
+      var id="custom_"+customDraft.name.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"")+"_"+Date.now().toString(36);
+      D.meals.custom_recipes.push({
+        id:id,
+        name:customDraft.name,
+        book:"Custom", page:null,
+        svg:parseFloat(customDraft.svg)||1,
+        kcal:parseFloat(customDraft.kcal)||0,
+        p:parseFloat(customDraft.p)||0,
+        c:parseFloat(customDraft.c)||0,
+        f:parseFloat(customDraft.f)||0,
+        protein:{type:customDraft.protein_type||"custom"},
+        diet:["custom"],
+        note:customDraft.note||"",
+        ing:[]
+      });
+      mealsAddingCustom=false;
+      customDraft={name:"",svg:4,kcal:"",p:"",c:"",f:"",protein_type:"salmon",note:""};
+      saveData(D);render();
+    });
+    actRow.appendChild(saveBtn);
+    var cancBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"CANCEL");
+    cancBtn.addEventListener("click",function(){mealsAddingCustom=false;render();});
+    actRow.appendChild(cancBtn);
+    fc.appendChild(actRow);
+    wrap.appendChild(fc);
+  } else {
+    var addBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px dashed "+Cm,borderRadius:"2px",cursor:"pointer",marginBottom:"4px"},"+ ADD CUSTOM RECIPE");
+    addBtn.addEventListener("click",function(){mealsAddingCustom=true;render();});
+    wrap.appendChild(addBtn);
+  }
+
+  var groups=[
+    ["SALMON",function(r){return r.protein.type==="salmon";}],
+    ["SHRIMP",function(r){return r.protein.type==="shrimp";}],
+    ["CHICKEN (occasional)",function(r){return r.protein.type==="chicken";}],
+    ["CUSTOM",function(r){return r.protein.type!=="salmon"&&r.protein.type!=="shrimp"&&r.protein.type!=="chicken";}]
+  ];
+  var recs=allRecipes();
   for(var g=0;g<groups.length;g++){
+    var filter=groups[g][1];
+    // Skip empty groups
+    var hasAny=false;for(var k=0;k<recs.length;k++){if(filter(recs[k])){hasAny=true;break;}}
+    if(!hasAny)continue;
     var groupCard=card();
     groupCard.appendChild(lbl(groups[g][0]));
-    var filter=groups[g][1];
-    for(var i=0;i<REC.length;i++){
+    for(var i=0;i<recs.length;i++){
       (function(r){
         if(!filter(r))return;
         var active=D.meals.rotation.indexOf(r.id)>=0;
@@ -2981,7 +3077,7 @@ function renderMealsRotate(){
           saveData(D);render();
         });
         groupCard.appendChild(rcard);
-      })(REC[i]);
+      })(recs[i]);
     }
     wrap.appendChild(groupCard);
   }
