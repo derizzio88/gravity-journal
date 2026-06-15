@@ -4,7 +4,9 @@
 // from the client. Per PRD §10.2 / NFR-4.
 //
 // Request body (from client):
-//   { prompt: string, system: string }
+//   { prompt: string, system: string,
+//     image_base64?: string,    // raw base64 (no data URL prefix); enables vision call
+//     media_type?: string }     // defaults to "image/jpeg"
 //
 // Response body (to client):
 //   { text: string }                 // on success
@@ -59,7 +61,7 @@ Deno.serve(async (req) => {
     return json({ error: "server misconfigured: ANTHROPIC_API_KEY missing" }, 500);
   }
 
-  let body: { prompt?: string; system?: string };
+  let body: { prompt?: string; system?: string; image_base64?: string; media_type?: string };
   try {
     body = await req.json();
   } catch (_e) {
@@ -68,11 +70,21 @@ Deno.serve(async (req) => {
 
   const prompt = (body.prompt || "").trim();
   const system = (body.system || "").trim();
+  const image_base64 = body.image_base64;
+  const media_type = body.media_type || "image/jpeg";
   if (!prompt) return json({ error: "missing 'prompt'" }, 400);
 
   const model = Deno.env.get("COACH_MODEL") || DEFAULT_MODEL;
   const maxTokensEnv = Deno.env.get("COACH_MAX_TOKENS");
   const max_tokens = maxTokensEnv ? parseInt(maxTokensEnv, 10) : DEFAULT_MAX_TOKENS;
+
+  // Build messages — vision call when image present, otherwise plain text
+  const userContent = image_base64
+    ? [
+        { type: "image", source: { type: "base64", media_type, data: image_base64 } },
+        { type: "text", text: prompt },
+      ]
+    : prompt;
 
   const upstream = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -85,7 +97,7 @@ Deno.serve(async (req) => {
       model,
       max_tokens,
       system,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: userContent }],
     }),
   });
 

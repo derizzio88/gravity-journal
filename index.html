@@ -1882,9 +1882,14 @@ function buildTrainingContext(){
 // ── AI COACH STATE ────────────────────────────────────────────────────────────
 var coachState = {loading:false, response:"", error:"", mode:"wod", lastCtx:null};
 
-function callClaude(prompt, systemPrompt, callback){
+// callClaude(prompt, system, callback)                  — text-only
+// callClaude(prompt, system, {image_base64, media_type}, callback) — vision call
+function callClaude(prompt, systemPrompt, optsOrCb, maybeCb){
+  var opts={}, callback;
+  if(typeof optsOrCb==="function"){callback=optsOrCb;}
+  else {opts=optsOrCb||{};callback=maybeCb;}
   var cfg = (D.coachConfig)||{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:""};
-  if(!cfg.proxyUrl){callback("Coach proxy URL not configured. Set it in SETUP · DATA.",null);return;}
+  if(!cfg.proxyUrl){callback("Coach proxy URL not configured. Set it in SETUP · SETTINGS.",null);return;}
   var req = new XMLHttpRequest();
   req.open("POST", cfg.proxyUrl, true);
   req.setRequestHeader("Content-Type","application/json");
@@ -1897,7 +1902,27 @@ function callClaude(prompt, systemPrompt, callback){
     }catch(e){callback("Parse error: "+e.message+" (status "+req.status+")",null);}
   };
   req.onerror = function(){callback("Network error reaching coach proxy — check Supabase project is up.",null);};
-  req.send(JSON.stringify({prompt:prompt, system:systemPrompt}));
+  var body={prompt:prompt, system:systemPrompt};
+  if(opts.image_base64){body.image_base64=opts.image_base64;body.media_type=opts.media_type||"image/jpeg";}
+  req.send(JSON.stringify(body));
+}
+
+// System prompt for picture-macro estimation — returns ONLY JSON, no preamble
+var SNAP_MACRO_SYSTEM_PROMPT = "You are a macro estimation assistant. The user will send a photo of a single meal. Estimate macros realistically based on what's visible: portion size, visible protein source, carb sources, fats, oils, sauces, sides. Be precise about portion estimation — large plates and bowls trick the eye. Return ONLY valid JSON with this exact shape:\n{\n  \"name\": \"short descriptive meal name\",\n  \"kcal\": <integer, total>,\n  \"protein_g\": <integer>,\n  \"carbs_g\": <integer>,\n  \"fat_g\": <integer>,\n  \"confidence\": <integer 1-10 where 10 is high>,\n  \"notes\": \"optional 1-line note on assumptions made\"\n}\nNo markdown, no preamble, no explanation. JSON only.";
+
+// Try to extract a JSON object from a text blob the model returns
+function extractJsonObject(text){
+  if(!text)return null;
+  // Try direct parse first
+  try{return JSON.parse(text);}catch(_e){}
+  // Find the first balanced {...} block
+  var start=text.indexOf("{");if(start<0)return null;
+  var depth=0;
+  for(var i=start;i<text.length;i++){
+    if(text[i]==="{")depth++;
+    else if(text[i]==="}"){depth--;if(depth===0){try{return JSON.parse(text.substring(start,i+1));}catch(_e){return null;}}}
+  }
+  return null;
 }
 
 // ── BODY COMP STATE ───────────────────────────────────────────────────────────
@@ -2899,6 +2924,10 @@ function renderMealsToday(){
         var d=new Date();
         D.meals.log.push({date:today,time:hmTime(d.getTime()),recipe_id:rid,scale:scale,kcal:disp.kcal,p:disp.p,c:disp.c,f:disp.f});
         if(!D.meals["if"][today]||!D.meals["if"][today].start_ts||D.meals["if"][today].end_ts){if(!D.meals["if"][today])D.meals["if"][today]={};D.meals["if"][today].start_ts=Date.now();delete D.meals["if"][today].end_ts;}
+        // Decrement active prep cycle inventory if this recipe is in it
+        if(D.meals.activePrep&&D.meals.activePrep.recipes&&D.meals.activePrep.recipes[rid]){
+          D.meals.activePrep.recipes[rid].remaining=Math.max(0,(D.meals.activePrep.recipes[rid].remaining||0)-scale);
+        }
         saveData(D);render();
       });
       logCard.appendChild(rcard);
@@ -2907,7 +2936,96 @@ function renderMealsToday(){
   if(D.meals.rotation.length===0){
     logCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"},"No recipes in rotation — pick some on ROTATE."));
   }
+
+  // ── SNAP A MEAL · picture-macro estimation via /coach vision ──
+  var snapCard=card();
+  snapCard.appendChild(lbl("Off-Rotation Meal · Snap to Estimate"));
+  snapCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"For meals not in rotation. Take a photo, AI estimates macros, you confirm + log."));
+
+  if(snapLoading){
+    snapCard.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Ci,padding:"10px",textAlign:"center"},"⌛ Estimating macros…"));
+  } else if(snapPreview){
+    // Confirm-and-log card
+    snapCard.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Ci,marginBottom:"4px"},snapPreview.name||"Estimated meal"));
+    if(typeof snapPreview.confidence==="number"){
+      var cColor = snapPreview.confidence>=8?Cg:(snapPreview.confidence>=5?Cy:Cr);
+      snapCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},"Confidence: "+snapPreview.confidence+"/10"));
+    }
+    if(snapPreview.notes){snapCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic",marginBottom:"6px"},snapPreview.notes));}
+    function snapField(label,key){
+      var col=dv({flex:"1"});
+      col.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+      var inp=document.createElement("input");
+      inp.type="number";inp.step="1";inp.min="0";
+      inp.value=snapPreview[key]||0;
+      inp.style.cssText="width:100%;font-family:"+FH+";font-size:15px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:4px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+      inp.addEventListener("input",function(){snapPreview[key]=parseFloat(inp.value)||0;});
+      col.appendChild(inp);
+      return col;
+    }
+    var mrow=dv({display:"flex",gap:"8px",marginBottom:"10px"});
+    mrow.appendChild(snapField("KCAL","kcal"));
+    mrow.appendChild(snapField("P g","protein_g"));
+    mrow.appendChild(snapField("C g","carbs_g"));
+    mrow.appendChild(snapField("F g","fat_g"));
+    snapCard.appendChild(mrow);
+
+    var actR=dv({display:"flex",gap:"6px"});
+    var logBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Ci,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"LOG IT");
+    logBtn.addEventListener("click",function(){
+      var d=new Date();
+      D.meals.log.push({
+        date:today,time:hmTime(d.getTime()),
+        recipe_id:"snap_"+d.getTime(),
+        recipe_name:snapPreview.name||"Snapped meal",
+        scale:1,
+        kcal:Math.round(snapPreview.kcal)||0,
+        p:Math.round(snapPreview.protein_g)||0,
+        c:Math.round(snapPreview.carbs_g)||0,
+        f:Math.round(snapPreview.fat_g)||0,
+        from_snap:true
+      });
+      if(!D.meals["if"][today]||!D.meals["if"][today].start_ts||D.meals["if"][today].end_ts){if(!D.meals["if"][today])D.meals["if"][today]={};D.meals["if"][today].start_ts=Date.now();delete D.meals["if"][today].end_ts;}
+      snapPreview=null;saveData(D);render();
+    });
+    actR.appendChild(logBtn);
+    var discBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"DISCARD");
+    discBtn.addEventListener("click",function(){snapPreview=null;render();});
+    actR.appendChild(discBtn);
+    snapCard.appendChild(actR);
+  } else {
+    // Camera-capture input
+    var inp=document.createElement("input");
+    inp.type="file";inp.accept="image/*";inp.capture="environment";
+    inp.style.cssText="display:none";
+    inp.id="snap-input";
+    inp.addEventListener("change",function(ev){
+      var f=ev.target.files&&ev.target.files[0];if(!f)return;
+      snapLoading=true;render();
+      var reader=new FileReader();
+      reader.onload=function(){
+        var dataUrl=reader.result;
+        var commaIdx=dataUrl.indexOf(",");
+        var b64=dataUrl.substring(commaIdx+1);
+        var mediaType=dataUrl.substring(5,commaIdx).split(";")[0];  // "image/jpeg" from "data:image/jpeg;base64,..."
+        callClaude("Estimate macros for this meal.", SNAP_MACRO_SYSTEM_PROMPT, {image_base64:b64, media_type:mediaType}, function(err,text){
+          snapLoading=false;
+          if(err){alert("Snap failed: "+err);render();return;}
+          var parsed=extractJsonObject(text);
+          if(!parsed||typeof parsed.kcal!=="number"){alert("Couldn't parse response: "+text);render();return;}
+          snapPreview=parsed;
+          render();
+        });
+      };
+      reader.readAsDataURL(f);
+    });
+    snapCard.appendChild(inp);
+    var snapBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"12px",background:"transparent",color:Ci,border:"1px dashed "+Cm,borderRadius:"2px",cursor:"pointer"},"📷 SNAP A MEAL");
+    snapBtn.addEventListener("click",function(){inp.click();});
+    snapCard.appendChild(snapBtn);
+  }
   wrap.appendChild(logCard);
+  wrap.appendChild(snapCard);
 
   // Supplement stack — tap to log a dose, card greens out at target
   var suppSum={};
