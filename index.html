@@ -724,7 +724,7 @@ var COACH_PROXY_URL_DEFAULT = "https://vvwwhykbqoedxdmtktiq.supabase.co/function
 var COACH_SHARED_SECRET_DEFAULT = "";  // set this on first launch via Setup; persists in localStorage
 
 var KEY="gravity_og_v4";
-var DEFAULT_MEALS_PROFILE={weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12,wrist_in:0,ankle_in:0};
+var DEFAULT_MEALS_PROFILE={name:"",weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12,wrist_in:0,ankle_in:0};
 function loadData(){
   try{
     var r=localStorage.getItem(KEY);
@@ -3735,6 +3735,91 @@ function renderCoach(){
 
 function renderSettings(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});var s=D.settings;
+
+  // ── Your Profile ─────────────────────────────────────────────
+  // Body + dietary + IF settings live on D.meals.profile. Macro
+  // engine, archetype axes, and hyrox load defaults all read from
+  // here. Sex changes the FFMI/leanness reference curves automatically.
+  var pCard=card();
+  pCard.appendChild(lbl("Your Profile"));
+  pCard.appendChild(tw("Sex changes the FFMI + leanness reference curves automatically. Weight, BF%, height feed the macro engine and Potential Profile math.",{color:Cm,marginBottom:"8px",fontSize:"11px",fontStyle:"italic"}));
+  var p=D.meals.profile;
+  function profileText(label,key,placeholder){
+    var row=dv({marginBottom:"8px"});
+    row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+    var inp=document.createElement("input");
+    inp.type="text";inp.placeholder=placeholder||"";inp.value=p[key]||"";
+    inp.style.cssText="width:100%;font-family:"+FH+";font-size:15px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+    inp.addEventListener("change",function(){p[key]=inp.value;saveData(D);});
+    row.appendChild(inp);
+    return row;
+  }
+  function profileNum(label,key,placeholder,onAfter){
+    var row=dv({flex:"1"});
+    row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+    var inp=document.createElement("input");
+    inp.type="number";inp.step="0.1";inp.placeholder=placeholder||"";inp.value=p[key]||"";
+    inp.style.cssText="width:100%;font-family:"+FH+";font-size:15px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+    inp.addEventListener("change",function(){var v=parseFloat(inp.value);if(!isNaN(v))p[key]=v;if(onAfter)onAfter();saveData(D);render();});
+    row.appendChild(inp);
+    return row;
+  }
+  function profileSelect(label,key,opts){
+    var row=dv({flex:"1"});
+    row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"2px"},label));
+    var sel=document.createElement("select");
+    sel.style.cssText="width:100%;font-family:"+FB+";font-size:13px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+    for(var i=0;i<opts.length;i++){
+      var o=document.createElement("option");
+      o.value=String(opts[i][0]);o.textContent=opts[i][1];
+      if(String(p[key])===String(opts[i][0]))o.selected=true;
+      sel.appendChild(o);
+    }
+    sel.addEventListener("change",function(){var v=sel.value;p[key]=isNaN(parseFloat(v))?v:parseFloat(v);saveData(D);render();});
+    row.appendChild(sel);
+    return row;
+  }
+  pCard.appendChild(profileText("Name (for greeting / multi-user later)","name","e.g. Ian"));
+  var r1=dv({display:"flex",gap:"8px",marginBottom:"6px"});
+  r1.appendChild(profileSelect("Sex","sex",[["M","Male"],["F","Female"]]));
+  r1.appendChild(profileNum("Age","age","35"));
+  pCard.appendChild(r1);
+  var r2=dv({display:"flex",gap:"8px",marginBottom:"6px"});
+  r2.appendChild(profileNum("Weight (lb)","weight_lb","210",function(){p.weight_kg=Math.round(p.weight_lb*0.4536*10)/10;}));
+  r2.appendChild(profileNum("Height (in)","height_in","71",function(){p.height_cm=Math.round(p.height_in*2.54*10)/10;}));
+  pCard.appendChild(r2);
+  var r3=dv({display:"flex",gap:"8px",marginBottom:"6px"});
+  r3.appendChild(profileNum("Body fat %","bf_pct","22"));
+  r3.appendChild(profileNum("Target BF %","target_bf_pct","7"));
+  pCard.appendChild(r3);
+  pCard.appendChild(profileSelect("Activity","activity",[
+    [1.2,"Sedentary"],
+    [1.375,"Light (1-3×/wk)"],
+    [1.55,"Moderate (5-6×/wk)"],
+    [1.725,"Heavy (6-7×/wk + 2-a-days)"],
+    [1.9,"Very heavy"]
+  ]));
+  var r4=dv({display:"flex",gap:"8px",marginBottom:"6px"});
+  r4.appendChild(profileNum("Cut deficit (kcal/d)","deficit_kcal","400"));
+  r4.appendChild(profileNum("Protein g / lb","protein_g_per_lb","1.5"));
+  r4.appendChild(profileNum("Fat g / lb","fat_g_per_lb","0.4"));
+  pCard.appendChild(r4);
+  var r5=dv({display:"flex",gap:"8px"});
+  r5.appendChild(profileNum("IF window (h)","if_window_h","6"));
+  r5.appendChild(profileNum("Default eating-open hour","if_anchor_hr","12"));
+  pCard.appendChild(r5);
+  pCard.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"6px",fontStyle:"italic"},"Wrist + ankle measurements (for the Potential Profile ceiling) live on BODY · ARCHETYPE."));
+  // Live macro target preview
+  var tgt=computeMealTargets(p);
+  var prev=dv({display:"flex",justifyContent:"space-around",marginTop:"10px",paddingTop:"8px",borderTop:"1px dashed "+Cm,fontFamily:FB,fontSize:"10px",color:Ci});
+  function previewCell(label,val){var c=dv({textAlign:"center"});c.appendChild(mk("div",{fontFamily:FH,fontSize:"16px"},String(val)));c.appendChild(mk("div",{fontSize:"8px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase"},label));return c;}
+  prev.appendChild(previewCell("kcal/d",tgt.kcal));
+  prev.appendChild(previewCell("p (g)",tgt.p));
+  prev.appendChild(previewCell("c (g)",tgt.c));
+  prev.appendChild(previewCell("f (g)",tgt.f));
+  pCard.appendChild(prev);
+  wrap.appendChild(pCard);
+
   var sc=card();sc.appendChild(lbl("Workout Split"));sc.appendChild(tw("OG recommends full-body for beginners. Splits work when volume stays moderate.",{color:Cm,marginBottom:"8px",fontSize:"11px",fontStyle:"italic"}));
   var sk=Object.keys(SPLITS);
   for(var si=0;si<sk.length;si++){
