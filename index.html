@@ -832,48 +832,82 @@ var ARCHETYPES=[
 var ARCH_AXIS_LABELS={RS:"Relative Strength",PO:"Power Output",MM:"Muscle Mass",LN:"Leanness",FX:"Flexibility",SK:"Skill Mastery"};
 function archetypeById(id){for(var i=0;i<ARCHETYPES.length;i++){if(ARCHETYPES[i].id===id)return ARCHETYPES[i];}return ARCHETYPES[0];}
 
-// Compute the athlete's current axis values from real data
+// Helper: max progression level within an OG category
+function ogCatMaxLevel(catKey){var c=OG[catKey];if(!c)return 1;var mx=1;for(var i=0;i<c.progressions.length;i++)if(c.progressions[i].level>mx)mx=c.progressions[i].level;return mx;}
+function afCatMaxLevel(catId){var c=afCatById(catId);if(!c)return 1;var mx=1;for(var i=0;i<c.progressions.length;i++)if(c.progressions[i].level>mx)mx=c.progressions[i].level;return mx;}
+
+// Compute the athlete's current axis values from real data.
+// Benchmarks calibrated to realistic athlete reference points
+// (not fixed constants like /12, etc.) per axis below.
 function computeArchetypeAxes(d){
   var ax={RS:0,PO:0,MM:0,LN:0,FX:0,SK:0};
 
-  // RS: average current OG progression level across structural categories, scaled by 12 (Lvl 12 ≈ peak)
+  // RS — Relative Strength
+  // Per-category: current level ÷ that category's max progression level.
+  // Average across the structural core 7. This accounts for backlever
+  // (8 levels) vs push (~14 levels) having different ladder depths —
+  // an "L8 backlever" (full BL) is peak; an "L8 push" is mid-ladder.
   var coreKeys=["push","pull","backlever","handstand","lsit","dip_mu","squat"];
-  var rsSum=0,rsN=0;
+  var rsVals=[];
   for(var i=0;i<coreKeys.length;i++){
     var pId=d.progressions&&d.progressions[coreKeys[i]];
-    if(!pId)continue;var ex=findEx(coreKeys[i],pId);if(ex){rsSum+=ex.level;rsN++;}
+    if(!pId)continue;
+    var ex=findEx(coreKeys[i],pId);if(!ex)continue;
+    rsVals.push(Math.min(100,Math.round(ex.level/ogCatMaxLevel(coreKeys[i])*100)));
   }
-  if(rsN>0)ax.RS=Math.min(100,Math.round(rsSum/rsN/12*100));
+  if(rsVals.length>0){var s=0;for(var i=0;i<rsVals.length;i++)s+=rsVals[i];ax.RS=Math.round(s/rsVals.length);}
 
-  // PO: blend sprint 40m PR (4.5s→100, 6.5s→0) + OG plyo level + foot-rehab plyo level
+  // PO — Power Output
+  // Sprint 40m reference: 7.0s=untrained → 0; 4.0s=elite → 100; linear.
+  // Plus OG plyo level + foot-rehab plyo level, each scaled by their
+  // category's max. Three signals averaged.
   var poVals=[];
   if(d.sprint&&d.sprint.prs){
     var pr=d.sprint.prs["40"];
-    if(pr&&pr.time)poVals.push(Math.max(0,Math.min(100,(6.5-pr.time)/2*100)));
+    if(pr&&pr.time)poVals.push(Math.max(0,Math.min(100,(7-pr.time)/3*100)));
   }
-  if(d.progressions&&d.progressions.plyo){var ex=findEx("plyo",d.progressions.plyo);if(ex)poVals.push(Math.min(100,ex.level/6*100));}
-  if(d.rehab&&d.rehab.current&&d.rehab.current.af_plyo){var ex=afExerciseById("af_plyo",d.rehab.current.af_plyo);if(ex)poVals.push(Math.min(100,ex.level/7*100));}
+  if(d.progressions&&d.progressions.plyo){
+    var ex=findEx("plyo",d.progressions.plyo);if(ex)poVals.push(Math.min(100,Math.round(ex.level/ogCatMaxLevel("plyo")*100)));
+  }
+  if(d.rehab&&d.rehab.current&&d.rehab.current.af_plyo){
+    var ex=afExerciseById("af_plyo",d.rehab.current.af_plyo);if(ex)poVals.push(Math.min(100,Math.round(ex.level/afCatMaxLevel("af_plyo")*100)));
+  }
   if(poVals.length>0){var s=0;for(var i=0;i<poVals.length;i++)s+=poVals[i];ax.PO=Math.round(s/poVals.length);}
 
   // Pull body stats: prefer latest Hume scan, fall back to profile
-  var weightLb,bfPct,heightIn;
+  var weightLb,bfPct,heightIn,sex;
   if(d.bodyComp&&d.bodyComp.length>0){var bc=d.bodyComp[d.bodyComp.length-1];if(bc.weight)weightLb=bc.weight;if(bc.bf_pct)bfPct=bc.bf_pct;}
-  if((!weightLb||!bfPct)&&d.meals&&d.meals.profile){var p=d.meals.profile;if(!weightLb)weightLb=p.weight_lb;if(!bfPct)bfPct=p.bf_pct;heightIn=p.height_in;}
+  if(d.meals&&d.meals.profile){var p=d.meals.profile;if(!weightLb)weightLb=p.weight_lb;if(!bfPct)bfPct=p.bf_pct;heightIn=p.height_in;sex=p.sex;}
 
-  // MM: FFMI-based. FFMI 17→0, 22→70, 25→100 (rough natural-cap scale)
+  // MM — Muscle Mass (FFMI-based, sex-aware)
+  //   Male:   FFMI 17→0 (untrained), 21→50 (filled out), 25→100 (natural cap)
+  //   Female: FFMI 14→0,             18→50,              22→100
   if(weightLb&&bfPct&&heightIn){
     var lbm_kg=weightLb*(1-bfPct/100)*0.4536;
     var h_m=heightIn*0.0254;
     var ffmi=lbm_kg/(h_m*h_m);
-    ax.MM=Math.max(0,Math.min(100,Math.round((ffmi-17)*100/8)));
+    var mmFloor=(sex==="F")?14:17, mmCeil=(sex==="F")?22:25;
+    ax.MM=Math.max(0,Math.min(100,Math.round((ffmi-mmFloor)/(mmCeil-mmFloor)*100)));
   }
-  // LN: 25% BF→0, 5% BF→100 linear
-  if(bfPct)ax.LN=Math.max(0,Math.min(100,Math.round((25-bfPct)/20*100)));
 
-  // FX: OG mobility category level (max ~8)
-  if(d.progressions&&d.progressions.mobility){var ex=findEx("mobility",d.progressions.mobility);if(ex)ax.FX=Math.min(100,Math.round(ex.level/8*100));}
+  // LN — Leanness (BF% inverse, sex-aware)
+  //   Male:   25%→0 (above-avg), 15%→50 (fit), 10%→75 (athletic), 5%→100 (shredded)
+  //   Female: 32%→0,             22%→50,       17%→75,            12%→100
+  if(bfPct){
+    var lnCeil=(sex==="F")?32:25, lnFloor=(sex==="F")?12:5;
+    ax.LN=Math.max(0,Math.min(100,Math.round((lnCeil-bfPct)/(lnCeil-lnFloor)*100)));
+  }
 
-  // SK: count of "peak" progressions (.p:1 flag) owned across all OG categories
+  // FX — Flexibility (blend OG mobility + rehab ankle mobility)
+  var fxVals=[];
+  if(d.progressions&&d.progressions.mobility){var ex=findEx("mobility",d.progressions.mobility);if(ex)fxVals.push(Math.min(100,Math.round(ex.level/ogCatMaxLevel("mobility")*100)));}
+  if(d.rehab&&d.rehab.current&&d.rehab.current.ankle_mob){var ex=afExerciseById("ankle_mob",d.rehab.current.ankle_mob);if(ex)fxVals.push(Math.min(100,Math.round(ex.level/afCatMaxLevel("ankle_mob")*100)));}
+  if(fxVals.length>0){var s=0;for(var i=0;i<fxVals.length;i++)s+=fxVals[i];ax.FX=Math.round(s/fxVals.length);}
+
+  // SK — Skill Mastery (ownership of "peak" progressions across all OG categories)
+  // Each peak (.p:1) = 1 owned. Owning 33% of all peak movements = max
+  // (×300 multiplier). Owning every peak ever is impossibly rare;
+  // 1/3 ownership is already elite multi-discipline territory.
   var ownedPeaks=0,totalPeaks=0;
   var ogKeys=Object.keys(OG);
   for(var i=0;i<ogKeys.length;i++){
@@ -882,7 +916,7 @@ function computeArchetypeAxes(d){
     var pId=d.progressions&&d.progressions[ogKeys[i]];
     if(pId){var ex=findEx(ogKeys[i],pId);if(ex&&ex.p)ownedPeaks++;}
   }
-  if(totalPeaks>0)ax.SK=Math.min(100,Math.round(ownedPeaks/totalPeaks*200));
+  if(totalPeaks>0)ax.SK=Math.min(100,Math.round(ownedPeaks/totalPeaks*300));
   return ax;
 }
 
