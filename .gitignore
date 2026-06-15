@@ -1,0 +1,7 @@
+
+# Copyrighted source materials — local reference only
+*.pdf
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
