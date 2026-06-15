@@ -1185,11 +1185,11 @@ function render(){
   // Title is "Parent · Sub" when in a parent tab so the user knows where they are
   var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
   var subTitles={sprint:"Sprint",rehab:"Ankle / Foot Rehab",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup",scan:"Body Composition",archetype:"Archetype Radar"};
-  if(VIEW==="body"&&subTitles[bodySub])titleText="Body · "+subTitles[bodySub];
   var titleText=titles[VIEW]||"Today's Workout";
   if(VIEW==="train"&&subTitles[trainSub])titleText+=" · "+subTitles[trainSub];
   else if(VIEW==="insights"&&subTitles[insightsSub])titleText+=" · "+subTitles[insightsSub];
   else if(VIEW==="admin"&&subTitles[adminSub])titleText+=" · "+subTitles[adminSub];
+  else if(VIEW==="body"&&subTitles[bodySub])titleText="Body · "+subTitles[bodySub];
   root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titleText));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
