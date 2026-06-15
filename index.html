@@ -2886,6 +2886,77 @@ function renderMealsToday(){
   }
   wrap.appendChild(ifBox);
 
+  // ── Prep cycle status + auto-reorder banner ──
+  if(D.meals.activePrep&&D.meals.activePrep.recipes){
+    var ap=D.meals.activePrep;
+    var lowList=[],emptyList=[],totalRemaining=0,totalPlanned=0;
+    for(var rid in ap.recipes){
+      var info=ap.recipes[rid];
+      totalRemaining += Math.max(0,info.remaining||0);
+      totalPlanned += info.planned||0;
+      if((info.remaining||0)<=0)emptyList.push(rid);
+      else if((info.remaining||0) < (info.planned||0)*0.25 || (info.remaining||0) < 2)lowList.push(rid);
+    }
+    // Auto-reorder banner (only when something is low / empty)
+    if(lowList.length>0||emptyList.length>0){
+      var banner=dv({padding:"12px",border:"2px solid "+Cr,background:"#f4dfc6",marginBottom:"10px"});
+      banner.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",letterSpacing:"0.1em",color:Cr,marginBottom:"4px"},"⚠️ TIME TO PLAN NEXT PREP"));
+      var lowNames=[];
+      for(var i=0;i<emptyList.length;i++){var r=recById(emptyList[i]);lowNames.push((r?r.name:emptyList[i])+" (empty)");}
+      for(var i=0;i<lowList.length;i++){var r=recById(lowList[i]);lowNames.push((r?r.name:lowList[i])+" low");}
+      banner.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Ci,marginBottom:"6px"},lowNames.join(" · ")));
+      var bbtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"8px 16px",background:Cr,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},"GO TO PLAN");
+      bbtn.addEventListener("click",function(){
+        // Pre-populate planInput with last cycle's planned amounts (consumption-aware default)
+        for(var rid in ap.recipes){mealsPlanInput[rid]=ap.recipes[rid].planned;}
+        mealsSub="plan";persistUiState();render();window.scrollTo(0,0);
+      });
+      banner.appendChild(bbtn);
+      wrap.appendChild(banner);
+    }
+    // Cycle status card
+    var pcCard=card();
+    var pcHdr=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline"});
+    pcHdr.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.15em",color:Cm,textTransform:"uppercase"},"Current Prep · started "+(ap.started_at||"—")));
+    pcHdr.appendChild(mk("div",{fontFamily:FH,fontSize:"14px",color:Ci},totalRemaining+" / "+totalPlanned+" meals"));
+    pcCard.appendChild(pcHdr);
+    for(var rid in ap.recipes){
+      (function(id,info){
+        var r=recById(id);
+        var rem=Math.max(0,info.remaining||0);
+        var pct=info.planned>0?rem/info.planned:0;
+        var color = rem<=0?Cr : (pct<0.25?Cr : (pct<0.5?"#5c3a1a":Cg));
+        var row=dv({display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px dotted "+Cm,fontFamily:FB,fontSize:"11px"});
+        row.appendChild(mk("span",{color:Ci},r?r.name:id));
+        row.appendChild(mk("span",{color:color,fontWeight:"bold"},(Math.round(rem*10)/10)+" / "+info.planned));
+        pcCard.appendChild(row);
+      })(rid, ap.recipes[rid]);
+    }
+    wrap.appendChild(pcCard);
+  } else {
+    // Seed button — Ian's prep from yesterday, 10 / 20 / 30
+    var seedCard=card();
+    seedCard.appendChild(lbl("Prep Cycle"));
+    seedCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"6px"},"No active prep cycle. Plan one in PLAN, or seed Ian's 2026-06-14 cycle below."));
+    var seedBtn=mk("button",{width:"100%",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:"transparent",color:Ci,border:"1px dashed "+Cm,borderRadius:"2px",cursor:"pointer"},"SEED YESTERDAY'S PREP (10 / 20 / 30)");
+    seedBtn.addEventListener("click",function(){
+      D.meals.activePrep={
+        started_at:"2026-06-14",
+        recipes:{
+          salmon_ramen:{planned:10,remaining:10},
+          orange_pepper_shrimp:{planned:20,remaining:20},
+          shrimp_fried_rice_hp:{planned:30,remaining:30}
+        }
+      };
+      // Ensure those three are in the rotation
+      var seedIds=["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"];
+      for(var i=0;i<seedIds.length;i++){if(D.meals.rotation.indexOf(seedIds[i])<0)D.meals.rotation.push(seedIds[i]);}
+      saveData(D);render();
+    });
+    seedCard.appendChild(seedBtn);
+    wrap.appendChild(seedCard);
+  }
+
   // Macros card
   var macCard=card();
   macCard.appendChild(lbl("Today · Macros"));
@@ -3258,6 +3329,33 @@ function renderMealsPlan(){
   });
   actRow.appendChild(shareBtn);
   wrap.appendChild(actRow);
+
+  // Start / Update prep cycle — snapshots current planInput as the active cycle
+  var startCycleRow=dv({display:"flex",gap:"6px",margin:"4px 0 10px"});
+  var hasActive=!!(D.meals.activePrep&&D.meals.activePrep.recipes);
+  var sLabel=hasActive?"🍱 UPDATE PREP CYCLE":"🍱 START PREP CYCLE";
+  var startBtn=mk("button",{flex:"1",fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px",background:Cg,color:Cs,border:"none",borderRadius:"2px",cursor:"pointer"},sLabel);
+  startBtn.addEventListener("click",function(){
+    if(hasActive){
+      if(!confirm("Replace the current prep cycle with the values above?"))return;
+    }
+    var today=new Date();var iso=today.getFullYear()+"-"+("0"+(today.getMonth()+1)).slice(-2)+"-"+("0"+today.getDate()).slice(-2);
+    var recipes={};
+    for(var i=0;i<D.meals.rotation.length;i++){
+      var rid=D.meals.rotation[i];
+      var planned=mealsPlanInput[rid]||D.meals.prep_servings;
+      recipes[rid]={planned:planned,remaining:planned};
+    }
+    D.meals.activePrep={started_at:iso,recipes:recipes};
+    saveData(D);render();
+  });
+  startCycleRow.appendChild(startBtn);
+  if(hasActive){
+    var clearBtn=mk("button",{fontFamily:FB,fontSize:"11px",letterSpacing:"0.15em",padding:"10px 16px",background:"transparent",color:Ci,border:"1px solid "+Ci,borderRadius:"2px",cursor:"pointer"},"CLEAR");
+    clearBtn.addEventListener("click",function(){if(!confirm("Clear the active prep cycle? Inventory tracking stops."))return;D.meals.activePrep=null;saveData(D);render();});
+    startCycleRow.appendChild(clearBtn);
+  }
+  wrap.appendChild(startCycleRow);
 
   var pre=mk("pre",{fontFamily:FB,fontSize:"10px",color:Ci,background:Cx,border:"1px solid "+Cm,padding:"10px",whiteSpace:"pre-wrap",lineHeight:"1.4",maxHeight:"60vh",overflowY:"auto"},listText);
   wrap.appendChild(pre);
