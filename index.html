@@ -707,6 +707,14 @@ function buildPlainList(picks){
   return lines.join("\n");
 }
 
+// ── COACH PROXY CONFIG ───────────────────────────────────────────────────────
+// The Anthropic API key never lives in the client. callClaude() POSTs the
+// prompt to your Supabase Edge Function, which holds the key as a secret.
+// Override either of these in SETUP · DATA → "Coach config" if you ever
+// rotate the project or secret.
+var COACH_PROXY_URL_DEFAULT = "https://vvwwhykbqoedxdmtktiq.supabase.co/functions/v1/coach";
+var COACH_SHARED_SECRET_DEFAULT = "";  // set this on first launch via Setup; persists in localStorage
+
 var KEY="gravity_og_v4";
 var DEFAULT_MEALS_PROFILE={weight_lb:210,weight_kg:95.3,bf_pct:22,target_bf_pct:7,height_in:71,height_cm:180,age:35,sex:"M",activity:1.55,deficit_kcal:400,protein_g_per_lb:1.5,fat_g_per_lb:0.4,if_window_h:6,if_anchor_hr:12,wrist_in:0,ankle_in:0};
 function loadData(){
@@ -744,10 +752,13 @@ function loadData(){
       if(!d.hyrox.prs)d.hyrox.prs={};
       if(!d.archetype)d.archetype="striker";
       if(!d.uiState)d.uiState={};
+      if(!d.coachConfig)d.coachConfig={proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT};
+      if(!d.coachConfig.proxyUrl)d.coachConfig.proxyUrl=COACH_PROXY_URL_DEFAULT;
+      if(typeof d.coachConfig.sharedSecret!=="string")d.coachConfig.sharedSecret="";
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[]},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -1859,26 +1870,21 @@ function buildTrainingContext(){
 var coachState = {loading:false, response:"", error:"", mode:"wod", lastCtx:null};
 
 function callClaude(prompt, systemPrompt, callback){
+  var cfg = (D.coachConfig)||{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:""};
+  if(!cfg.proxyUrl){callback("Coach proxy URL not configured. Set it in SETUP · DATA.",null);return;}
   var req = new XMLHttpRequest();
-  req.open("POST","https://api.anthropic.com/v1/messages",true);
+  req.open("POST", cfg.proxyUrl, true);
   req.setRequestHeader("Content-Type","application/json");
+  if(cfg.sharedSecret)req.setRequestHeader("x-coach-secret", cfg.sharedSecret);
   req.onload = function(){
     try{
       var d = JSON.parse(req.responseText);
-      var text = "";
-      if(d.content&&d.content.length>0){
-        for(var i=0;i<d.content.length;i++) if(d.content[i].type==="text") text+=d.content[i].text;
-      }
-      callback(null,text||"No response received.");
-    }catch(e){callback("Parse error: "+e.message,null);}
+      if(req.status>=400){callback("Coach error: "+(d.error||req.status)+(d.detail?" — "+d.detail:""),null);return;}
+      callback(null, d.text || "No response received.");
+    }catch(e){callback("Parse error: "+e.message+" (status "+req.status+")",null);}
   };
-  req.onerror = function(){callback("Network error — check connection.",null);};
-  req.send(JSON.stringify({
-    model:"claude-sonnet-4-20250514",
-    max_tokens:1000,
-    system:systemPrompt,
-    messages:[{role:"user",content:prompt}]
-  }));
+  req.onerror = function(){callback("Network error reaching coach proxy — check Supabase project is up.",null);};
+  req.send(JSON.stringify({prompt:prompt, system:systemPrompt}));
 }
 
 // ── BODY COMP STATE ───────────────────────────────────────────────────────────
@@ -3459,7 +3465,29 @@ function renderSettings(){
       if(ex)row.appendChild(stamp("L"+ex.level,Cm));pc.appendChild(row);
     })(ok[oi]);
   }
-  wrap.appendChild(pc);return wrap;
+  wrap.appendChild(pc);
+
+  // Coach proxy config — Anthropic key lives in the Edge Function, not here.
+  var cc=card();
+  cc.appendChild(lbl("AI Coach Proxy"));
+  cc.appendChild(tw("Anthropic key is held by the Supabase Edge Function — never the client. Override the URL or shared secret here if you rotate the project.",{color:Cm,marginBottom:"8px",fontSize:"11px",fontStyle:"italic"}));
+  function coachField(labelText,key,placeholder,type){
+    var row=dv({marginBottom:"8px"});
+    row.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,textTransform:"uppercase",marginBottom:"3px"},labelText));
+    var inp=document.createElement("input");
+    inp.type=type||"text";inp.placeholder=placeholder||"";
+    inp.value=(D.coachConfig&&D.coachConfig[key])||"";
+    inp.style.cssText="width:100%;font-family:"+FB+";font-size:12px;background:transparent;border:none;border-bottom:1px solid "+Cm+";padding:5px 2px;outline:none;color:"+Ci+";box-sizing:border-box;";
+    inp.addEventListener("change",function(){if(!D.coachConfig)D.coachConfig={};D.coachConfig[key]=inp.value;saveData(D);render();});
+    row.appendChild(inp);
+    return row;
+  }
+  cc.appendChild(coachField("Edge Function URL","proxyUrl","https://<project>.supabase.co/functions/v1/coach"));
+  cc.appendChild(coachField("Shared Secret (x-coach-secret header)","sharedSecret","optional but recommended","password"));
+  cc.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"4px"},"Shared secret must match COACH_SHARED_SECRET in the Edge Function's environment. Leave blank if you skipped that step (Anthropic key still hidden, but anyone with the URL can call your function)."));
+  wrap.appendChild(cc);
+
+  return wrap;
 }
 
 render();
