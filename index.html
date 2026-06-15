@@ -822,12 +822,24 @@ var hyroxPickType=null;
 // ── ARCHETYPE SYSTEM (PRD §7) ───────────────────────────────────────────────
 // Six axes 0-100. Values per PRD §7.3 mapped from qualitative descriptors:
 // Very High=95, High=75, Med-High=65, Med=50, Low=30
+// Inspiration lines paint the physique TYPE without naming real people or
+// copyrighted characters, per PRD §7.4. Generic stock concepts only.
 var ARCHETYPES=[
- {id:"striker",  name:"The Striker",   axes:{RS:75,PO:95,MM:50,LN:80,FX:70,SK:50}, feel:"Lean, explosive, striated power (the Baki target)."},
- {id:"colossus", name:"The Colossus",  axes:{RS:75,PO:50,MM:95,LN:50,FX:30,SK:30}, feel:"Raw mass and force."},
- {id:"ascetic",  name:"The Ascetic",   axes:{RS:75,PO:50,MM:30,LN:80,FX:95,SK:95}, feel:"Skill + control on a lean frame."},
- {id:"sovereign",name:"The Sovereign", axes:{RS:65,PO:65,MM:65,LN:65,FX:50,SK:65}, feel:"Balanced aesthetic all-rounder."},
- {id:"phantom",  name:"The Phantom",   axes:{RS:50,PO:80,MM:30,LN:95,FX:70,SK:50}, feel:"Agile, lean, athletic."}
+ {id:"striker",  name:"The Striker",   axes:{RS:75,PO:95,MM:50,LN:80,FX:70,SK:50},
+   feel:"Lean, explosive, striated power.",
+   inspiration:"Welterweight build at peak conditioning. Striated like a 100m sprinter, single-digit BF, every fiber visible. Power-to-weight over absolute mass."},
+ {id:"colossus", name:"The Colossus",  axes:{RS:75,PO:50,MM:95,LN:50,FX:30,SK:30},
+   feel:"Raw mass and force.",
+   inspiration:"Strongman / heavyweight powerlifter silhouette. Density over definition; maximum absolute force; mobility traded for tonnage."},
+ {id:"ascetic",  name:"The Ascetic",   axes:{RS:75,PO:50,MM:30,LN:80,FX:95,SK:95},
+   feel:"Skill + control on a lean frame.",
+   inspiration:"Competition gymnast or calisthenics specialist at meet weight. Lean, wiry, full active range. End-range control is the flex, not the mass."},
+ {id:"sovereign",name:"The Sovereign", axes:{RS:65,PO:65,MM:65,LN:65,FX:50,SK:65},
+   feel:"Balanced aesthetic all-rounder.",
+   inspiration:"The 'fit-actor-for-an-action-role' build. No axis dominates; nothing's neglected. Looks athletic across every angle."},
+ {id:"phantom",  name:"The Phantom",   axes:{RS:50,PO:80,MM:30,LN:95,FX:70,SK:50},
+   feel:"Agile, lean, athletic.",
+   inspiration:"Track sprinter or rock climber profile. Visibly low body fat, low absolute mass, but explosive. Built for sustained dynamic movement, not parking-lot demonstrations."}
 ];
 var ARCH_AXIS_LABELS={RS:"Relative Strength",PO:"Power Output",MM:"Muscle Mass",LN:"Leanness",FX:"Flexibility",SK:"Skill Mastery"};
 function archetypeById(id){for(var i=0;i<ARCHETYPES.length;i++){if(ARCHETYPES[i].id===id)return ARCHETYPES[i];}return ARCHETYPES[0];}
@@ -2192,6 +2204,7 @@ function renderArchetype(){
   }
   selCard.appendChild(selRow);
   selCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,fontStyle:"italic"},arch.feel));
+  if(arch.inspiration)selCard.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci,marginTop:"6px",paddingTop:"6px",borderTop:"1px dashed "+Cm,lineHeight:"1.4"},arch.inspiration));
   wrap.appendChild(selCard);
 
   // Radar
