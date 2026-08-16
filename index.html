@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#f4f0e8">
+<meta name="theme-color" content="#0b0a09">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Gravity Journal">
@@ -12,15 +12,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#f4f0e8;color:#2a2118;font-family:Georgia,serif}
-input,select{background:transparent;border:none;border-bottom:1px solid #8b7355;color:#2a2118;font-family:Georgia,serif;font-size:13px;padding:4px 2px;outline:none;width:100%;border-radius:0;-webkit-appearance:none}
+html,body{height:100%;background:#0b0a09;color:#ece6d8;font-family:Georgia,serif}
+input,select{background:transparent;border:none;border-bottom:1px solid #6b6155;color:#ece6d8;font-family:Georgia,serif;font-size:13px;padding:4px 2px;outline:none;width:100%;border-radius:0;-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
-input:focus{border-bottom:2px solid #2a2118}
+input:focus{border-bottom:2px solid #cc1122}
 button{cursor:pointer;font-family:Georgia,serif;border:none;background:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 ::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-thumb{background:#8b7355}
-#root{min-height:100vh;background:#f4f0e8;padding:12px 14px 80px}
-#nb{position:fixed;bottom:0;left:0;right:0;background:#ede6d6;border-top:2px solid #2a2118;display:flex;padding-bottom:8px}
+::-webkit-scrollbar-thumb{background:#cc1122}
+#root{min-height:100vh;background:#0b0a09;padding:12px 14px 80px}
+#nb{position:fixed;bottom:0;left:0;right:0;background:#141210;border-top:2px solid #cc1122;display:flex;padding-bottom:8px}
 </style>
 </head>
 <body>
@@ -29,7 +29,7 @@ button{cursor:pointer;font-family:Georgia,serif;border:none;background:none;-web
 <script>
 var FH="'Special Elite',Georgia,serif";
 var FB="'Courier Prime',Georgia,monospace";
-var Ci="#2a2118",Cm="#8b7355",Cr="#8b3a1a",Cb="#1a3a6b",Cg="#1a5c3a",Cl="#c9bfa8",Cs="#ede6d6",Cx="#e8e0d0",Cy="#f4f0e8";
+var Ci="#ece6d8",Cm="#9a8f7e",Cr="#cc1122",Cb="#5b8bc0",Cg="#4faf63",Cl="#2e2a24",Cs="#14110e",Cx="#1a1714",Cy="#0b0a09";
 
 var OG={
   push:{label:"Push / Planche",icon:"+",color:"#8b3a1a",rt:[15,15,12,10,8,8,7,6,5,4,3,3,2],progressions:[
@@ -484,10 +484,19 @@ var SUPP=[
 ];
 function suppById(id){for(var i=0;i<SUPP.length;i++){if(SUPP[i].id===id)return SUPP[i];}return null;}
 
-// ── ANKLE/FOOT REHAB MODULE ──────────────────────────────────────────────────
-// Six categories: 3 daily-maintenance (intrinsics, ankle mobility, balance) +
+// ── ANKLE/FOOT + TENDON REHAB MODULE ─────────────────────────────────────────
+// Ankle/foot: 3 daily-maintenance (intrinsics, ankle mobility, balance) +
 // 3 strength/power (dorsiflexors, plantar flexors, plyo). Plyo carries a
 // power flag = no eccentric top-up, long rest, not to failure.
+//
+// Jīn Gǔ (筋骨, "sinew & bone") tendon block — added for sprint resilience.
+// Tendons adapt to HIGH load × TIME, slower than muscle (6-12+ wk). Three
+// evidence-based modalities drive it: Heavy Slow Resistance (proto:"hsr",
+// ~4×6 @ 3s up/3s down, 3×/wk), long isometrics (proto:"iso45", 5×30-45s —
+// also analgesic, Rio et al.), and eccentrics (proto:"alfredson"). Traditional
+// Shaolin stances (Mǎbù/Gōngbù/Xūbù/Jīnjī Dúlì) ARE high-load isometric holds,
+// so they slot in as the stance-based iso progression. Categories: patellar
+// (knee), shaolin (stance holds), ham_tendon (proximal hamstring).
 var AF=[
  {id:"intrinsics",label:"Intrinsic Foot",icon:"⌒",daily:true,desc:"Short foot, toe yoga, doming. Rebuilds the arch from the inside.",
   progressions:[
@@ -549,11 +558,41 @@ var AF=[
    {id:"alt_bounding",name:"Alternating Bounding",level:5,type:"con"},
    {id:"sl_bound_continuous",name:"Single-Leg Continuous Bound",level:6,type:"con"},
    {id:"depth_jump",name:"Depth Jump → Sprint",level:7,type:"con"}
+  ]},
+ {id:"patellar",label:"Patellar / Knee Tendon",icon:"◼",desc:"Jīn Gǔ knee block. HSR + long isometrics build patellar-tendon stiffness for the sprint drive. Slow & heavy — not to failure.",
+  progressions:[
+   {id:"wall_sit",name:"Wall Sit (isometric)",level:1,type:"iso",proto:"iso45"},
+   {id:"spanish_squat",name:"Spanish Squat Hold (banded)",level:2,type:"iso",proto:"iso45"},
+   {id:"tempo_squat",name:"Tempo Squat — 3s down / 3s up (HSR)",level:3,type:"con",proto:"hsr"},
+   {id:"heavy_slow_squat",name:"Heavy Slow Resistance Squat",level:4,type:"con",proto:"hsr"},
+   {id:"sl_decline_ecc",name:"Single-Leg Decline Squat (eccentric)",level:5,type:"con",proto:"alfredson"},
+   {id:"sl_spanish",name:"Single-Leg Spanish Squat Hold",level:6,type:"iso",proto:"iso45"},
+   {id:"atg_split",name:"ATG Split Squat (loaded)",level:6,type:"con"}
+  ]},
+ {id:"shaolin",label:"Shaolin Stance Holds (Jīn Gǔ)",icon:"立",daily:true,desc:"Traditional stances = high-load isometric tendon holds. Sink into the stance, breathe, hold long. Ankle→knee→hip loaded as one chain.",
+  progressions:[
+   {id:"mabu_high",name:"Horse Stance — Mǎbù (high)",level:1,type:"iso",proto:"iso45"},
+   {id:"gongbu",name:"Bow Stance — Gōngbù (per side)",level:2,type:"iso",proto:"iso45"},
+   {id:"xubu",name:"Empty / Cat Stance — Xūbù (per side)",level:3,type:"iso",proto:"iso45"},
+   {id:"jinji_duli",name:"Golden Rooster — Jīnjī Dúlì (single-leg)",level:3,type:"iso"},
+   {id:"mabu_low",name:"Horse Stance — Mǎbù (low, thighs ∥ ground)",level:4,type:"iso",proto:"iso45"},
+   {id:"jinji_ec",name:"Golden Rooster — eyes closed",level:5,type:"iso"},
+   {id:"mabu_weighted",name:"Weighted Horse Stance (hold plate)",level:6,type:"iso",proto:"iso45"}
+  ]},
+ {id:"ham_tendon",label:"Hamstring / Proximal Tendon",icon:"⌐",desc:"High-hamstring tendon resilience — the #1 sprint injury. Long-lever isometrics + Nordic eccentrics. Progress slowly.",
+  progressions:[
+   {id:"ll_bridge_iso",name:"Long-Lever Bridge Hold (iso)",level:1,type:"iso",proto:"iso45"},
+   {id:"sl_bridge_iso",name:"Single-Leg Bridge Hold",level:2,type:"iso",proto:"iso45"},
+   {id:"razor_curl",name:"Slider / Razor Hamstring Curl",level:3,type:"con"},
+   {id:"nordic_band",name:"Nordic Curl — band-assisted (eccentric)",level:4,type:"con",proto:"alfredson"},
+   {id:"sl_rdl_load",name:"Single-Leg RDL — loaded (HSR)",level:5,type:"con",proto:"hsr"},
+   {id:"nordic_full",name:"Full Nordic Curl (eccentric)",level:5,type:"con",proto:"alfredson"},
+   {id:"long_lever_kb",name:"Long-Lever Loaded Bridge (HSR)",level:6,type:"con",proto:"hsr"}
   ]}
 ];
 function afCatById(id){for(var i=0;i<AF.length;i++){if(AF[i].id===id)return AF[i];}return null;}
 function afExerciseById(cid,eid){var c=afCatById(cid);if(!c)return null;for(var i=0;i<c.progressions.length;i++){if(c.progressions[i].id===eid)return c.progressions[i];}return null;}
-var DEFAULT_REHAB_CURRENT={intrinsics:"short_foot_seated",dorsiflex:"seated_tib_raise",plantarflex:"db_heel_raise",ankle_mob:"ktw_test",balance:"sl_stand_eo",af_plyo:"db_pogo"};
+var DEFAULT_REHAB_CURRENT={intrinsics:"short_foot_seated",dorsiflex:"seated_tib_raise",plantarflex:"db_heel_raise",ankle_mob:"ktw_test",balance:"sl_stand_eo",af_plyo:"db_pogo",patellar:"wall_sit",shaolin:"mabu_high",ham_tendon:"ll_bridge_iso"};
 
 // ── HYROX MODULE: compromise circuits + race-rehearsal blocks ────────────────
 // Open-division weights (kg). load_each=true means per-hand load.
@@ -1002,9 +1041,9 @@ function buildRadarSvg(current,target){
   function pt(idx,val){var a=(idx*60-90)*Math.PI/180;return{x:cx+Math.cos(a)*r*val/100,y:cy+Math.sin(a)*r*val/100};}
   var s='<svg viewBox="0 0 '+size+' '+size+'" style="width:100%;max-width:'+size+'px;display:block;margin:0 auto">';
   // grid rings 25/50/75/100
-  for(var g=25;g<=100;g+=25){var pts=[];for(var i=0;i<6;i++){var p=pt(i,g);pts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}s+='<polygon points="'+pts.join(" ")+'" fill="none" stroke="#c9bfa8" stroke-width="0.5"/>';}
+  for(var g=25;g<=100;g+=25){var pts=[];for(var i=0;i<6;i++){var p=pt(i,g);pts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}s+='<polygon points="'+pts.join(" ")+'" fill="none" stroke="#3a352e" stroke-width="0.5"/>';}
   // axis spokes
-  for(var i=0;i<6;i++){var p=pt(i,100);s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x.toFixed(1)+'" y2="'+p.y.toFixed(1)+'" stroke="#c9bfa8" stroke-width="0.5"/>';}
+  for(var i=0;i<6;i++){var p=pt(i,100);s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x.toFixed(1)+'" y2="'+p.y.toFixed(1)+'" stroke="#3a352e" stroke-width="0.5"/>';}
   // target polygon (archetype)
   var tPts=[];for(var i=0;i<6;i++){var p=pt(i,target[labels[i]]||0);tPts.push(p.x.toFixed(1)+","+p.y.toFixed(1));}
   s+='<polygon points="'+tPts.join(" ")+'" fill="rgba(139,58,26,0.12)" stroke="#8b3a1a" stroke-width="1.5" stroke-dasharray="4,3"/>';
@@ -1102,7 +1141,7 @@ function renderData(){
   wrap.appendChild(statCard);
 
   // How updates work - explanation
-  var infoCard=card({background:"#e8f0e8",borderLeft:"3px solid "+Cg});
+  var infoCard=card({background:"#12201a",borderLeft:"3px solid "+Cg});
   infoCard.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Cg,marginBottom:"6px"},"Safe to update the app"));
   var infoLines=[
     "Your data is stored in this browser's localStorage, not in the HTML file itself.",
@@ -1563,7 +1602,7 @@ function renderLog(){
   var el2=dv({display:"flex",flexDirection:"column",gap:"2px",maxHeight:"200px",overflowY:"auto",marginTop:"4px"});
   for(var i=0;i<catData.progressions.length;i++){
     (function(ex){var sel=D._logExId===ex.id;var r=calcR(D.sessions,progCat,ex.id);
-      var row=dv({display:"flex",alignItems:"center",gap:"7px",padding:"6px 8px",background:sel?"#e8e0d0":"transparent",borderLeft:"2px solid "+(sel?Ci:"transparent"),cursor:"pointer"});
+      var row=dv({display:"flex",alignItems:"center",gap:"7px",padding:"6px 8px",background:sel?"#241f1a":"transparent",borderLeft:"2px solid "+(sel?Ci:"transparent"),cursor:"pointer"});
       row.appendChild(mk("span",{fontSize:"9px",color:Cm,minWidth:"18px",fontFamily:FB},"L"+(ex.level||"?")));
       row.appendChild(mk("span",{flex:"1",fontSize:"12px",fontFamily:FB,color:ex.p?Cr:Ci},ex.name+(ex.p?" *":"")));
       row.appendChild(mk("span",{fontSize:"8px",color:ex.type==="iso"?Cb:Cr,fontFamily:FB},ex.type==="iso"?"ISO":"DYN"));
@@ -1958,7 +1997,7 @@ function renderBody(){
   var wrap = dv({display:"flex",flexDirection:"column",gap:"10px"});
 
   // Instruction banner
-  var info = card({background:"#e8f0e8",borderLeft:"3px solid "+Cg,padding:"12px"});
+  var info = card({background:"#12201a",borderLeft:"3px solid "+Cg,padding:"12px"});
   info.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:Cg,marginBottom:"6px"},"Hume Body Pod Entry"));
   info.appendChild(tw("Open your Hume Health app, tap your latest scan, and enter the numbers below. The key metrics are at the top — segmental data is optional but gives the AI coach better insight.",{color:Cm,fontSize:"11px",marginBottom:"4px"}));
   info.appendChild(tw("No Hume Pod? Enter whatever you have — weight and body fat % from any source works.",{color:Cm,fontSize:"10px",fontStyle:"italic"}));
@@ -2693,6 +2732,8 @@ function renderRehab(){
     var working=mk("div",{fontFamily:FB,fontSize:"10px",color:Cb,marginTop:"3px"},"Working: "+cur.name+"  ·  L"+cur.level+"  ·  "+cur.type);
     ll.appendChild(working);
     if(cur.proto==="alfredson")ll.appendChild(stamp("ALFREDSON 3×15 BID",Cr));
+    else if(cur.proto==="hsr")ll.appendChild(stamp("HSR 4×6 · 3s↓3s↑ · 3×/wk",Cr));
+    else if(cur.proto==="iso45")ll.appendChild(stamp("ISO HOLD 5×30–45s",Cr));
     top.appendChild(ll);
 
     var rr=dv({display:"flex",gap:"6px",alignItems:"center"});
@@ -2918,7 +2959,7 @@ function renderMealsToday(){
     }
     // Auto-reorder banner (only when something is low / empty)
     if(lowList.length>0||emptyList.length>0){
-      var banner=dv({padding:"12px",border:"2px solid "+Cr,background:"#f4dfc6",marginBottom:"10px"});
+      var banner=dv({padding:"12px",border:"2px solid "+Cr,background:"#241a10",marginBottom:"10px"});
       banner.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",letterSpacing:"0.1em",color:Cr,marginBottom:"4px"},"⚠️ TIME TO PLAN NEXT PREP"));
       var lowNames=[];
       for(var i=0;i<emptyList.length;i++){var r=recById(emptyList[i]);lowNames.push((r?r.name:emptyList[i])+" (empty)");}
@@ -3399,7 +3440,7 @@ function renderRecipeDetail(id){
   wrap.appendChild(macCard);
 
   if(r.note){
-    var n=card();n.style.background="#f4dfc6";n.style.borderColor=Cr;
+    var n=card();n.style.background="#241a10";n.style.borderColor=Cr;
     n.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Ci},"NOTE: "+r.note));
     wrap.appendChild(n);
   }
@@ -3737,7 +3778,7 @@ function renderCoach(){
 
     // Quick-apply WOD button (only for WOD mode)
     if(coachState.mode==="wod"){
-      var applyNote = card({background:"#e8f0e8",borderLeft:"3px solid "+Cg});
+      var applyNote = card({background:"#12201a",borderLeft:"3px solid "+Cg});
       applyNote.appendChild(tw("Review the AI suggestion above, then head to the TODAY tab to log your session. Your current progressions are already set — the coach suggestion is a guide, not an override.",{color:Cg,fontSize:"11px"}));
       wrap.appendChild(applyNote);
     }
@@ -3845,7 +3886,7 @@ function renderSettings(){
   var sk=Object.keys(SPLITS);
   for(var si=0;si<sk.length;si++){
     (function(key){var sp=SPLITS[key];var active=s.split===key;
-      var row=dv({display:"flex",alignItems:"flex-start",gap:"8px",padding:"8px",marginBottom:"4px",background:active?"#e8e0d0":"transparent",border:"1px solid "+(active?Ci:Cl),borderRadius:"2px",cursor:"pointer"});
+      var row=dv({display:"flex",alignItems:"flex-start",gap:"8px",padding:"8px",marginBottom:"4px",background:active?"#241f1a":"transparent",border:"1px solid "+(active?Ci:Cl),borderRadius:"2px",cursor:"pointer"});
       row.appendChild(mk("div",{width:"12px",height:"12px",borderRadius:"50%",border:"2px solid "+(active?Ci:Cm),background:active?Ci:"transparent",marginTop:"2px",flexShrink:"0"}));
       var info=dv({});info.appendChild(mk("div",{fontFamily:FH,fontSize:"13px",color:active?Ci:Cm},sp.name));info.appendChild(tw(sp.desc,{color:Cm,fontSize:"10px"}));row.appendChild(info);
       row.addEventListener("click",function(){D.settings.split=key;saveData(D);render();});sc.appendChild(row);
@@ -3865,7 +3906,7 @@ function renderSettings(){
   var reps=[{id:"failure",name:"To Failure",note:"OG standard. Maximum reps each set."},{id:"rpe",name:"RPE 8-9 (RIR 1-2)",note:"Leave 1-2 reps in reserve. Best for high-frequency."},{id:"fixed",name:"Fixed Target",note:"Exact OG level target reps."}];
   for(var ri=0;ri<reps.length;ri++){
     (function(rs){var active=s.repScheme===rs.id;
-      var row=dv({display:"flex",gap:"8px",alignItems:"flex-start",padding:"8px",marginBottom:"4px",background:active?"#e8e0d0":"transparent",border:"1px solid "+(active?Ci:Cl),borderRadius:"2px",cursor:"pointer"});
+      var row=dv({display:"flex",gap:"8px",alignItems:"flex-start",padding:"8px",marginBottom:"4px",background:active?"#241f1a":"transparent",border:"1px solid "+(active?Ci:Cl),borderRadius:"2px",cursor:"pointer"});
       row.appendChild(mk("div",{width:"12px",height:"12px",borderRadius:"50%",border:"2px solid "+(active?Ci:Cm),background:active?Ci:"transparent",marginTop:"2px",flexShrink:"0"}));
       var info=dv({});info.appendChild(mk("div",{fontFamily:FH,fontSize:"12px",color:active?Ci:Cm},rs.name));info.appendChild(tw(rs.note,{color:Cm,fontSize:"10px",fontStyle:"italic"}));row.appendChild(info);
       row.addEventListener("click",function(){D.settings.repScheme=rs.id;saveData(D);render();});repC.appendChild(row);
