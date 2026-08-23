@@ -4,8 +4,8 @@
   "description": "Overcoming Gravity bodyweight training tracker",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0a09",
-  "theme_color": "#0b0a09",
+  "background_color": "#0d0b08",
+  "theme_color": "#0d0b08",
   "orientation": "portrait",
   "icons": [
     {

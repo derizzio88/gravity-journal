@@ -3,33 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0b0a09">
+<meta name="theme-color" content="#0d0b08">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Gravity Journal">
 <title>Gravity Journal</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Shippori+Mincho:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#0b0a09;color:#ece6d8;font-family:Georgia,serif}
-input,select{background:transparent;border:none;border-bottom:1px solid #6b6155;color:#ece6d8;font-family:Georgia,serif;font-size:13px;padding:4px 2px;outline:none;width:100%;border-radius:0;-webkit-appearance:none}
+html,body{height:100%;background:#0d0b08;color:#e8dfc8;font-family:'Shippori Mincho',Georgia,serif}
+input,select,textarea{background:transparent;border:none;border-bottom:1px solid #5a5040;color:#e8dfc8;font-family:'Shippori Mincho',Georgia,serif;font-size:13px;padding:4px 2px;outline:none;width:100%;border-radius:0;-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
-input:focus{border-bottom:2px solid #cc1122}
-button{cursor:pointer;font-family:Georgia,serif;border:none;background:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input:focus{border-bottom:2px solid #c8a24e}
+textarea{border:1px solid #33291d;background:#0d0b08;padding:8px;min-height:60px;resize:vertical;line-height:1.55;font-size:13px}
+textarea:focus{border:1px solid #c8a24e;border-bottom:1px solid #c8a24e}
+button{cursor:pointer;font-family:'Shippori Mincho',Georgia,serif;border:none;background:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 ::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-thumb{background:#cc1122}
-#root{min-height:100vh;background:#0b0a09;padding:12px 14px 80px}
-#nb{position:fixed;bottom:0;left:0;right:0;background:#141210;border-top:2px solid #cc1122;display:flex;padding-bottom:8px}
+::-webkit-scrollbar-thumb{background:#c8a24e}
+#root{min-height:100vh;background:radial-gradient(900px 420px at 50% -80px,rgba(200,162,78,0.06),transparent 65%),#0d0b08;padding:12px 14px 80px}
+#nb{position:fixed;bottom:0;left:0;right:0;background:#12100b;border-top:1px solid #8f7433;box-shadow:0 -6px 14px rgba(0,0,0,0.55);display:flex;padding-bottom:8px}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <div id="nb"></div>
 <script>
-var FH="'Special Elite',Georgia,serif";
-var FB="'Courier Prime',Georgia,monospace";
-var Ci="#ece6d8",Cm="#9a8f7e",Cr="#cc1122",Cb="#5b8bc0",Cg="#4faf63",Cl="#2e2a24",Cs="#14110e",Cx="#1a1714",Cy="#0b0a09";
+var FH="'Cinzel',Georgia,serif";
+var FB="'Shippori Mincho',Georgia,serif";
+var Ci="#e8dfc8",Cm="#96896e",Cr="#c1272d",Cb="#c8a24e",Cg="#7a9464",Cl="#33291d",Cs="#14110c",Cx="#191510",Cy="#0d0b08";
 
 var OG={
   push:{label:"Push / Planche",icon:"+",color:"#8b3a1a",rt:[15,15,12,10,8,8,7,6,5,4,3,3,2],progressions:[
@@ -796,6 +798,10 @@ function loadData(){
       if(!d.rehab.log)d.rehab.log=[];
       if(!d.martial)d.martial={log:[]};
       if(!d.martial.log)d.martial.log=[];
+      if(!d.rings)d.rings={entries:[],floor:{desc:"30 min training — no matter what"},wind:{}};
+      if(!d.rings.entries)d.rings.entries=[];
+      if(!d.rings.floor)d.rings.floor={desc:"30 min training — no matter what"};
+      if(!d.rings.wind)d.rings.wind={};
       if(!d.hyrox)d.hyrox={sessions:[],prs:{}};
       if(!d.hyrox.sessions)d.hyrox.sessions=[];
       if(!d.hyrox.prs)d.hyrox.prs={};
@@ -807,7 +813,7 @@ function loadData(){
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[],custom_recipes:[],activePrep:null},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[],custom_recipes:[],activePrep:null},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT},rings:{entries:[],floor:{desc:"30 min training — no matter what"},wind:{}}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -1053,9 +1059,9 @@ function buildRadarSvg(current,target){
   // labels + current values
   for(var i=0;i<6;i++){
     var pl=pt(i,128);
-    s+='<text x="'+pl.x.toFixed(1)+'" y="'+pl.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Special Elite" font-size="11" fill="#2a2118">'+labels[i]+'</text>';
+    s+='<text x="'+pl.x.toFixed(1)+'" y="'+pl.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Cinzel" font-size="11" fill="#2a2118">'+labels[i]+'</text>';
     var pv=pt(i,114);
-    s+='<text x="'+pv.x.toFixed(1)+'" y="'+pv.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Courier Prime" font-size="9" fill="#1a5c3a" font-weight="bold">'+Math.round(current[labels[i]]||0)+'</text>';
+    s+='<text x="'+pv.x.toFixed(1)+'" y="'+pv.y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-family="Shippori Mincho" font-size="9" fill="#1a5c3a" font-weight="bold">'+Math.round(current[labels[i]]||0)+'</text>';
   }
   s+='</svg>';
   return s;
@@ -1115,6 +1121,7 @@ function lbl(t){return mk("div",{fontSize:"9px",fontFamily:FH,letterSpacing:"0.1
 function hw(t,e){var s={fontFamily:FH,fontSize:"14px",color:Ci};if(e){var k=Object.keys(e);for(var i=0;i<k.length;i++)s[k[i]]=e[k[i]];}return mk("div",s,t);}
 function tw(t,e){var s={fontFamily:FB,fontSize:"12px",color:Ci};if(e){var k=Object.keys(e);for(var i=0;i<k.length;i++)s[k[i]]=e[k[i]];}return mk("div",s,t);}
 function stamp(t,c){return mk("span",{fontFamily:FH,fontSize:"9px",letterSpacing:"0.1em",color:c||Cr,border:"1px solid "+(c||Cr),padding:"1px 5px",borderRadius:"2px",textTransform:"uppercase",whiteSpace:"nowrap"},t);}
+function ornament(c){var w=dv({display:"flex",alignItems:"center",gap:"8px",margin:"8px 0"});w.appendChild(dv({flex:"1",height:"1px",background:c||Cl}));w.appendChild(mk("span",{color:Cb,fontSize:"8px",lineHeight:"1"},"◆"));w.appendChild(dv({flex:"1",height:"1px",background:c||Cl}));return w;}
 function ibar(pct,c){var w=mk("div",{background:Cl,height:"3px",margin:"4px 0",borderRadius:"2px"});w.appendChild(mk("div",{width:pct+"%",height:"100%",background:c||Ci,borderRadius:"2px"}));return w;}
 function iBtn(t,fn,o){
   var opt=o||{},s={fontFamily:opt.head?FH:FB,fontSize:opt.head?"14px":"12px",color:opt.primary?Cs:Ci,background:opt.primary?Ci:"transparent",border:"1px solid "+(opt.primary?Ci:Cm),padding:opt.small?"4px 10px":"8px 16px",borderRadius:"2px",cursor:"pointer",letterSpacing:"0.05em",width:opt.full?"100%":"auto",opacity:opt.disabled?"0.4":"1",display:"block"};
@@ -1302,38 +1309,44 @@ function renderHistory(){
 function render(){
   var root=document.getElementById("root");
   root.innerHTML="";
-  var hdr=dv({marginBottom:"14px",borderBottom:"2px solid "+Ci,paddingBottom:"10px"});
-  hdr.appendChild(mk("div",{fontFamily:FH,fontSize:"22px",color:Ci,letterSpacing:"0.08em"},"GRAVITY JOURNAL"));
-  var sub=dv({display:"flex",alignItems:"center",gap:"10px",marginTop:"4px",flexWrap:"wrap"});
+  var hdr=dv({marginBottom:"12px"});
+  var tRow=dv({display:"flex",alignItems:"baseline",gap:"10px",flexWrap:"wrap"});
+  tRow.appendChild(mk("div",{fontFamily:FH,fontSize:"19px",color:Ci,letterSpacing:"0.26em"},"GRAVITY JOURNAL"));
+  tRow.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cb,letterSpacing:"0.32em"},"重力日誌"));
+  hdr.appendChild(tRow);
+  var sub=dv({display:"flex",alignItems:"center",gap:"10px",marginTop:"5px",flexWrap:"wrap"});
   sub.appendChild(tw(new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}),{color:Cm,fontSize:"10px"}));
   sub.appendChild(stamp((SPLITS[D.settings.split]||SPLITS.fullbody).name,Cb));
   sub.appendChild(stamp(D.sessions.length+" sessions",Cm));
-  hdr.appendChild(sub);root.appendChild(hdr);
+  hdr.appendChild(sub);
+  hdr.appendChild(ornament());
+  root.appendChild(hdr);
   // Title is "Parent · Sub" when in a parent tab so the user knows where they are
-  var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
+  var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",rings:"Five Rings",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
   var subTitles={sprint:"Sprint",rehab:"Rehab & Tendon",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup",scan:"Body Composition",archetype:"Archetype Radar"};
   var titleText=titles[VIEW]||"Today's Workout";
   if(VIEW==="train"&&subTitles[trainSub])titleText+=" · "+subTitles[trainSub];
   else if(VIEW==="insights"&&subTitles[insightsSub])titleText+=" · "+subTitles[insightsSub];
   else if(VIEW==="admin"&&subTitles[adminSub])titleText+=" · "+subTitles[adminSub];
   else if(VIEW==="body"&&subTitles[bodySub])titleText="Body · "+subTitles[bodySub];
-  root.appendChild(mk("div",{fontFamily:FH,fontSize:"17px",color:Ci,marginBottom:"12px",borderBottom:"1px solid "+Cm,paddingBottom:"5px"},titleText));
+  root.appendChild(mk("div",{fontFamily:FH,fontSize:"15px",color:Ci,letterSpacing:"0.14em",marginBottom:"12px",borderBottom:"1px solid "+Cl,paddingBottom:"6px"},titleText));
   if(VIEW==="wod")root.appendChild(renderWod());
   else if(VIEW==="log")root.appendChild(renderLog());
   else if(VIEW==="train")root.appendChild(renderTrain());
   else if(VIEW==="meals")root.appendChild(renderMeals());
+  else if(VIEW==="rings")root.appendChild(renderRings());
   else if(VIEW==="insights")root.appendChild(renderInsights());
   else if(VIEW==="body")root.appendChild(renderBodyParent());
   else if(VIEW==="coach")root.appendChild(renderCoach());
   else if(VIEW==="admin")root.appendChild(renderAdmin());
   else root.appendChild(renderWod());
   var nav=document.getElementById("nb");nav.innerHTML="";
-  var navItems=[{id:"wod",label:"TODAY",g:"[*]"},{id:"log",label:"LOG",g:"[+]"},{id:"train",label:"TRAIN",g:"[^]"},{id:"meals",label:"MEALS",g:"[m]"},{id:"insights",label:"INSIGHTS",g:"[=]"},{id:"body",label:"BODY",g:"[b]"},{id:"coach",label:"COACH",g:"[ai]"},{id:"admin",label:"SETUP",g:"[o]"}];
+  var navItems=[{id:"wod",label:"TODAY",g:"今"},{id:"log",label:"LOG",g:"記"},{id:"train",label:"TRAIN",g:"鍛"},{id:"meals",label:"MEALS",g:"食"},{id:"rings",label:"RINGS",g:"環"},{id:"insights",label:"INSIGHT",g:"見"},{id:"body",label:"BODY",g:"体"},{id:"coach",label:"COACH",g:"師"},{id:"admin",label:"SETUP",g:"設"}];
   for(var i=0;i<navItems.length;i++){
     (function(v){
-      var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Ci:Cm,borderTop:VIEW===v.id?"3px solid "+Ci:"3px solid transparent"});
-      b.appendChild(mk("span",{fontSize:"13px",fontFamily:FH},v.g));
-      b.appendChild(mk("span",{fontSize:"8px",letterSpacing:"0.1em",fontFamily:FH},v.label));
+      var b=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",color:VIEW===v.id?Cb:Cm,borderTop:VIEW===v.id?"2px solid "+Cb:"2px solid transparent"});
+      b.appendChild(mk("span",{fontSize:"14px",fontFamily:FB,color:VIEW===v.id?Ci:Cm},v.g));
+      b.appendChild(mk("span",{fontSize:"7px",letterSpacing:"0.12em",fontFamily:FH},v.label));
       b.addEventListener("click",function(){VIEW=v.id;render();});
       nav.appendChild(b);
     })(navItems[i]);
@@ -2630,6 +2643,188 @@ function renderHyrox(){
 
   wrap.appendChild(prCard());
   wrap.appendChild(histCard());
+  return wrap;
+}
+
+// ── FIVE RINGS: Musashi discipline journal ───────────────────────────────────
+// Earth: intended vs actual vs the gap. Water: an unbreakable daily floor.
+// Fire: aim the frustration at tomorrow's mission. Wind: monthly study of
+// someone better. Void: the streak — the practice continued, no matter what.
+var RINGS=[
+  {id:"earth",kanji:"地",name:"Earth",hint:"See the ground you actually stand on. Numbers, not the story."},
+  {id:"water",kanji:"水",name:"Water",hint:"Hold the floor on the worst day. Let the current raise the rest."},
+  {id:"fire",kanji:"火",name:"Fire",hint:"Aim the burn at the exact weakness that produced it."},
+  {id:"wind",kanji:"風",name:"Wind",hint:"Stay a student — especially when you are winning."},
+  {id:"void",kanji:"空",name:"Void",hint:"It does not get easier. You become stronger."}
+];
+var ringsDraft=null;
+
+function ringsStreak(){
+  var days={};for(var i=0;i<D.rings.entries.length;i++)days[D.rings.entries[i].date]=1;
+  var t=new Date();
+  if(!days[isoDate(t)])t=new Date(t.getTime()-86400000); // today not yet written doesn't break it
+  var n=0;
+  while(days[isoDate(t)]){n++;t=new Date(t.getTime()-86400000);}
+  return n;
+}
+
+function renderRings(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  var today=todayKey();
+  var yesterday=isoDate(new Date(Date.now()-86400000));
+  var existing=null;
+  for(var i=0;i<D.rings.entries.length;i++)if(D.rings.entries[i].date===today){existing=D.rings.entries[i];break;}
+  if(!ringsDraft||ringsDraft.date!==today){
+    ringsDraft=existing?{date:today,ring:existing.ring,intended:existing.intended,actual:existing.actual,gap:existing.gap,floorMet:existing.floorMet,fireTrigger:existing.fireTrigger,fireMission:existing.fireMission}
+      :{date:today,ring:"earth",intended:"",actual:"",gap:"",floorMet:false,fireTrigger:"",fireMission:""};
+  }
+  function ta(key,ph,rows){
+    var t=document.createElement("textarea");
+    t.placeholder=ph||"";t.value=ringsDraft[key]||"";t.rows=rows||2;
+    t.addEventListener("input",function(){ringsDraft[key]=t.value;});
+    return t;
+  }
+
+  // ── VOID: the streak ──
+  var streak=ringsStreak();
+  var vc=card({borderLeft:"3px solid "+Cb});
+  var vTop=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline"});
+  var vL=dv({display:"flex",alignItems:"baseline",gap:"10px"});
+  vL.appendChild(mk("span",{fontFamily:FB,fontSize:"26px",color:Cb},"空"));
+  vL.appendChild(mk("span",{fontFamily:FH,fontSize:"28px",color:Ci},streak));
+  vL.appendChild(tw(streak===1?"day unbroken":"days unbroken",{fontSize:"11px",color:Cm}));
+  vTop.appendChild(vL);
+  vTop.appendChild(tw(D.rings.entries.length+" entries",{fontSize:"10px",color:Cm}));
+  vc.appendChild(vTop);
+  vc.appendChild(tw("The bridge is the destination. The practice is the thing itself.",{fontSize:"10px",color:Cm,fontStyle:"italic",marginTop:"4px"}));
+  wrap.appendChild(vc);
+
+  // ── Today's mission, set by yesterday's fire ──
+  var yEntry=null;
+  for(var yi=0;yi<D.rings.entries.length;yi++)if(D.rings.entries[yi].date===yesterday){yEntry=D.rings.entries[yi];break;}
+  if(yEntry&&yEntry.fireMission){
+    var mc=card({borderLeft:"3px solid "+Cr});
+    mc.appendChild(lbl("Today's Mission — set by yesterday's fire"));
+    mc.appendChild(tw(yEntry.fireMission,{fontSize:"13px",marginTop:"2px"}));
+    wrap.appendChild(mc);
+  }
+
+  // ── Ring self-assessment ──
+  var rc=card();
+  rc.appendChild(lbl("Which ring are you in — the one the numbers show, not the one you want"));
+  var chips=dv({display:"flex",gap:"6px",marginTop:"6px"});
+  for(var ri=0;ri<RINGS.length;ri++){
+    (function(r){
+      var active=ringsDraft.ring===r.id;
+      var ch=dv({flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"8px 0",cursor:"pointer",border:"1px solid "+(active?Cb:Cl),borderRadius:"2px",background:active?"rgba(200,162,78,0.08)":"transparent"});
+      ch.appendChild(mk("span",{fontFamily:FB,fontSize:"18px",color:active?Cb:Cm},r.kanji));
+      ch.appendChild(mk("span",{fontFamily:FH,fontSize:"8px",letterSpacing:"0.12em",color:active?Ci:Cm,textTransform:"uppercase"},r.name));
+      ch.addEventListener("click",function(){ringsDraft.ring=r.id;render();});
+      chips.appendChild(ch);
+    })(RINGS[ri]);
+  }
+  rc.appendChild(chips);
+  var curRing=null;for(var cri=0;cri<RINGS.length;cri++)if(RINGS[cri].id===ringsDraft.ring)curRing=RINGS[cri];
+  if(curRing)rc.appendChild(tw(curRing.hint,{fontSize:"10px",color:Cm,fontStyle:"italic",marginTop:"8px"}));
+  wrap.appendChild(rc);
+
+  // ── EARTH: intended / actual / gap ──
+  var ec=card({borderLeft:"3px solid #6b5a3a"});
+  var eh=dv({display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"8px"});
+  eh.appendChild(mk("span",{fontFamily:FB,fontSize:"16px",color:Cb},"地"));
+  eh.appendChild(hw("EARTH — SEE THE GAP",{fontSize:"12px",letterSpacing:"0.12em"}));
+  ec.appendChild(eh);
+  ec.appendChild(lbl("What I intended to do today"));
+  ec.appendChild(ta("intended","The plan, as it stood this morning."));
+  ec.appendChild(dv({height:"8px"}));
+  ec.appendChild(lbl("What I actually did"));
+  ec.appendChild(ta("actual","Hour by hour. Numbers, not the story."));
+  ec.appendChild(dv({height:"8px"}));
+  ec.appendChild(lbl("The gap — its exact shape"));
+  ec.appendChild(ta("gap","A gap you can see precisely is a gap you can close."));
+  wrap.appendChild(ec);
+
+  // ── WATER: the floor ──
+  var wc=card({borderLeft:"3px solid #3a566b"});
+  var wh=dv({display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"8px"});
+  wh.appendChild(mk("span",{fontFamily:FB,fontSize:"16px",color:Cb},"水"));
+  wh.appendChild(hw("WATER — THE FLOOR",{fontSize:"12px",letterSpacing:"0.12em"}));
+  wc.appendChild(wh);
+  wc.appendChild(lbl("The minimum you will not go below — on the worst day"));
+  var fInp=document.createElement("input");
+  fInp.type="text";fInp.value=D.rings.floor.desc||"";fInp.placeholder="e.g. 30 min training — no matter what";
+  fInp.addEventListener("change",function(){D.rings.floor.desc=fInp.value;saveData(D);});
+  wc.appendChild(fInp);
+  var fBtn=iBtn(ringsDraft.floorMet?"◆ FLOOR HELD TODAY":"FLOOR HELD TODAY?",function(){ringsDraft.floorMet=!ringsDraft.floorMet;render();},
+    {full:true,style:{marginTop:"10px",fontFamily:FH,fontSize:"11px",letterSpacing:"0.15em",color:ringsDraft.floorMet?Cs:Ci,background:ringsDraft.floorMet?Cg:"transparent",border:"1px solid "+(ringsDraft.floorMet?Cg:Cm)}});
+  wc.appendChild(fBtn);
+  wrap.appendChild(wc);
+
+  // ── FIRE: aim the burn ──
+  var fc=card({borderLeft:"3px solid "+Cr});
+  var fh=dv({display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"8px"});
+  fh.appendChild(mk("span",{fontFamily:FB,fontSize:"16px",color:Cr},"火"));
+  fh.appendChild(hw("FIRE — AIM THE BURN",{fontSize:"12px",letterSpacing:"0.12em"}));
+  fc.appendChild(fh);
+  fc.appendChild(lbl("What burned today — specifically"));
+  fc.appendChild(ta("fireTrigger","Not in general. The exact failure, the exact moment."));
+  fc.appendChild(dv({height:"8px"}));
+  fc.appendChild(lbl("Tomorrow's mission — same fuel, aimed"));
+  fc.appendChild(ta("fireMission","Convert the failure into tomorrow's first target."));
+  wrap.appendChild(fc);
+
+  // ── Seal the entry ──
+  var saveBtn=iBtn(existing?"RE-SEAL TODAY'S ENTRY":"SEAL TODAY'S ENTRY",function(){
+    var e={date:ringsDraft.date,ring:ringsDraft.ring,intended:ringsDraft.intended,actual:ringsDraft.actual,gap:ringsDraft.gap,floorMet:!!ringsDraft.floorMet,fireTrigger:ringsDraft.fireTrigger,fireMission:ringsDraft.fireMission,time:hmTime(Date.now())};
+    var replaced=false;
+    for(var si=0;si<D.rings.entries.length;si++)if(D.rings.entries[si].date===e.date){D.rings.entries[si]=e;replaced=true;break;}
+    if(!replaced)D.rings.entries.push(e);
+    D.rings.entries.sort(function(a,b){return a.date<b.date?-1:1;});
+    saveData(D);render();
+  },{full:true,primary:true,style:{fontFamily:FH,fontSize:"12px",letterSpacing:"0.2em",padding:"14px"}});
+  wrap.appendChild(saveBtn);
+  if(existing)wrap.appendChild(tw("Sealed today at "+(existing.time||"—")+". Editing re-seals.",{fontSize:"10px",color:Cm,fontStyle:"italic",textAlign:"center"}));
+
+  // ── WIND: this month's study ──
+  var monthKey=today.slice(0,7);
+  var nc=card({borderLeft:"3px solid #4a6b5a"});
+  var nh=dv({display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"8px"});
+  nh.appendChild(mk("span",{fontFamily:FB,fontSize:"16px",color:Cb},"風"));
+  nh.appendChild(hw("WIND — THIS MONTH'S STUDY",{fontSize:"12px",letterSpacing:"0.12em"}));
+  nc.appendChild(nh);
+  nc.appendChild(lbl("Someone whose discipline makes yours look like the beginning"));
+  var wInp=document.createElement("input");
+  wInp.type="text";wInp.value=D.rings.wind[monthKey]||"";wInp.placeholder="Who or what are you studying this month?";
+  wInp.addEventListener("change",function(){D.rings.wind[monthKey]=wInp.value;saveData(D);});
+  nc.appendChild(wInp);
+  if(!D.rings.wind[monthKey])nc.appendChild(tw("No study named for "+monthKey+". Comfort is trying to convince you nothing needs work.",{fontSize:"10px",color:Cr,fontStyle:"italic",marginTop:"6px"}));
+  wrap.appendChild(nc);
+
+  // ── History ──
+  var hc=card();
+  hc.appendChild(lbl("Past Entries"));
+  var shown=0;
+  for(var hi=D.rings.entries.length-1;hi>=0&&shown<30;hi--){
+    var E=D.rings.entries[hi];
+    if(E.date===today)continue;
+    shown++;
+    var kanji="地";for(var ki=0;ki<RINGS.length;ki++)if(RINGS[ki].id===E.ring)kanji=RINGS[ki].kanji;
+    var row=dv({padding:"8px 0",borderBottom:"1px dotted "+Cl});
+    var top=dv({display:"flex",alignItems:"center",gap:"8px"});
+    top.appendChild(mk("span",{fontFamily:FB,fontSize:"14px",color:Cb},kanji));
+    top.appendChild(mk("span",{flex:"1",fontFamily:FH,fontSize:"11px",color:Ci,letterSpacing:"0.08em"},E.date));
+    top.appendChild(mk("span",{fontFamily:FB,fontSize:"10px",color:E.floorMet?Cg:Cr},E.floorMet?"floor held":"floor broken"));
+    var delBtn=mk("button",{fontFamily:FB,fontSize:"9px",color:Cm,background:"transparent",border:"1px solid "+Cl,padding:"1px 6px",borderRadius:"2px",cursor:"pointer"},"×");
+    (function(idx){delBtn.addEventListener("click",function(){if(confirm("Delete this entry?")){D.rings.entries.splice(idx,1);saveData(D);render();}});})(hi);
+    top.appendChild(delBtn);
+    row.appendChild(top);
+    if(E.gap)row.appendChild(tw("Gap: "+E.gap,{fontSize:"10px",color:Cm,marginTop:"3px"}));
+    if(E.fireMission)row.appendChild(tw("Mission: "+E.fireMission,{fontSize:"10px",color:Cm,marginTop:"2px",fontStyle:"italic"}));
+    hc.appendChild(row);
+  }
+  if(!shown)hc.appendChild(tw("Nothing yet. The rings are not waiting for you to be ready.",{fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"}));
+  wrap.appendChild(hc);
+
   return wrap;
 }
 
