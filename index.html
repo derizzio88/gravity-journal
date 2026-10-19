@@ -75,7 +75,7 @@ var OG={
     {id:"tuck_fl_row",name:"Tuck FL Row",level:5,type:"con"},
     {id:"straddle_fl_row",name:"Straddle FL Row",level:8,type:"con"}
   ]},
-  backlever:{label:"Back Lever / Iron Cross",icon:"~",color:"#1a5c3a",rt:[30,20,15,15,10,10,8,8,5,5,3],progressions:[
+  backlever:{label:"Back Lever / Iron Cross",icon:"~",color:"#1a5c3a",skill:1,rt:[30,20,15,15,10,10,8,8,5,5,3],progressions:[
     {id:"german_hang",name:"German Hang",level:1,type:"iso"},
     {id:"skin_cat",name:"Skin the Cat",level:2,type:"con"},
     {id:"tuck_bl",name:"Tuck Back Lever",level:3,type:"iso"},
@@ -85,7 +85,7 @@ var OG={
     {id:"ic_prog",name:"Iron Cross Progressions",level:9,type:"iso"},
     {id:"iron_cross",name:"Iron Cross Hold",level:10,type:"iso",p:1}
   ]},
-  handstand:{label:"Handstand / Press",icon:"^",color:"#5c3a1a",rt:[10,8,6,5,5,4,3,3,2,2],progressions:[
+  handstand:{label:"Handstand / Press",icon:"^",color:"#5c3a1a",skill:1,rt:[10,8,6,5,5,4,3,3,2,2],progressions:[
     {id:"wall_hs_1",name:"Wall Handstand",level:1,type:"iso"},
     {id:"pike_hs_pu",name:"Pike Headstand Push-up",level:1,type:"con"},
     {id:"box_hs_pu",name:"Box Headstand Push-up",level:2,type:"con"},
@@ -97,7 +97,7 @@ var OG={
     {id:"pike_press",name:"Pike Press to HS",level:9,type:"con"},
     {id:"one_arm_hs",name:"One-Arm Handstand",level:10,type:"iso",p:1}
   ]},
-  lsit:{label:"L-Sit / Manna / Core",icon:"L",color:"#6b1a3a",rt:[10,15,20,25,30,30,20,15,10,8],progressions:[
+  lsit:{label:"L-Sit / Manna / Core",icon:"L",color:"#6b1a3a",skill:1,rt:[10,15,20,25,30,30,20,15,10,8],progressions:[
     {id:"tuck_lsit",name:"Tuck L-Sit",level:1,type:"iso"},
     {id:"one_leg_lsit",name:"One-Leg L-Sit",level:2,type:"iso"},
     {id:"lsit",name:"L-Sit",level:3,type:"iso"},
@@ -137,7 +137,7 @@ var OG={
     {id:"glute_ham",name:"Glute Ham Raise",level:6,type:"con"},
     {id:"king_dl",name:"King Deadlift",level:5,type:"con"}
   ]},
-  elbow_lever:{label:"Elbow Lever / Flag",icon:"E",color:"#5c5c1a",rt:[15,15,10,10,8,8,5],progressions:[
+  elbow_lever:{label:"Elbow Lever / Flag",icon:"E",color:"#5c5c1a",skill:1,rt:[15,15,10,10,8,8,5],progressions:[
     {id:"two_arm_el",name:"Two-Arm Elbow Lever",level:5,type:"iso"},
     {id:"rings_two_el",name:"Rings Two-Arm Elbow Lever",level:6,type:"iso"},
     {id:"one_arm_el",name:"One-Arm Elbow Lever",level:8,type:"iso",p:1},
@@ -385,10 +385,10 @@ var KB_CIRCUITS=[
 var MODS=[{id:"std",s:"Std"},{id:"ecc",s:"Ecc"},{id:"iso",s:"Iso"},{id:"asst",s:"Asst"},{id:"rpe",s:"RPE8"},{id:"neg",s:"Neg"}];
 
 var SPLITS={
-  fullbody:{name:"Full Body",desc:"All categories every session. OG recommended for beginners.",days:[{label:"Full Body",cats:["mobility","plyo","push","pull","backlever","handstand","lsit","dip_mu","squat","control"]}]},
-  pushpull:{name:"Push / Pull",desc:"Alternate push and pull days.",days:[{label:"Push Day",cats:["mobility","plyo","push","handstand","dip_mu","squat","control"]},{label:"Pull Day",cats:["mobility","plyo","pull","backlever","lsit","squat","control"]}]},
-  upperlower:{name:"Upper / Lower",desc:"Upper body skill vs leg sessions.",days:[{label:"Upper",cats:["mobility","plyo","push","pull","backlever","handstand","lsit","dip_mu","control"]},{label:"Lower",cats:["mobility","plyo","squat","elbow_lever","lsit","control"]}]},
-  bro:{name:"Bro-ish",desc:"Muscle-group focus. Works when volume stays moderate.",days:[{label:"Pressing",cats:["mobility","plyo","push","handstand","dip_mu","control"]},{label:"Pulling",cats:["mobility","plyo","pull","backlever","lsit","control"]},{label:"Legs + Core",cats:["mobility","plyo","squat","elbow_lever","lsit","control"]}]}
+  fullbody:{name:"Full Body",desc:"All categories every session. OG recommended for beginners.",days:[{label:"Full Body",cats:["mobility","handstand","backlever","lsit","plyo","push","pull","dip_mu","squat","control"]}]},
+  pushpull:{name:"Push / Pull",desc:"Alternate push and pull days.",days:[{label:"Push Day",cats:["mobility","handstand","plyo","push","dip_mu","squat","control"]},{label:"Pull Day",cats:["mobility","backlever","lsit","plyo","pull","squat","control"]}]},
+  upperlower:{name:"Upper / Lower",desc:"Upper body skill vs leg sessions.",days:[{label:"Upper",cats:["mobility","handstand","backlever","lsit","plyo","push","pull","dip_mu","control"]},{label:"Lower",cats:["mobility","elbow_lever","lsit","plyo","squat","control"]}]},
+  bro:{name:"Bro-ish",desc:"Muscle-group focus. Works when volume stays moderate.",days:[{label:"Pressing",cats:["mobility","handstand","plyo","push","dip_mu","control"]},{label:"Pulling",cats:["mobility","backlever","lsit","plyo","pull","control"]},{label:"Legs + Core",cats:["mobility","elbow_lever","lsit","plyo","squat","control"]}]}
 };
 
 // ── SPRINT MODULE: masters T&F + Hyrox prep ──────────────────────────────────
@@ -1372,6 +1372,37 @@ function renderWod(){
     dsel.appendChild(row);wrap.appendChild(dsel);
   }
 
+  // Session-order guide — Tempered Body sequencing for a 4am session
+  if(!D.uiState)D.uiState={};
+  var orderOpen=!!D.uiState.wodOrderOpen;
+  var ordC=card({borderLeft:"3px solid #8f7433"});
+  var ordHdr=dv({display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"});
+  ordHdr.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",letterSpacing:"0.12em",color:"#c8a24e"},"SESSION ORDER"));
+  ordHdr.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm},orderOpen?"[ − ]":"[ + ]"));
+  ordHdr.addEventListener("click",function(){D.uiState.wodOrderOpen=!orderOpen;saveData(D);render();});
+  ordC.appendChild(ordHdr);
+  ordC.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"4px"},"Warm-up → Skill → Power → Strength → Tendon (last)"));
+  if(orderOpen){
+    var steps=[
+      ["1 · Warm-up & mobility","Plus light tendon prep (wrist work, easy holds). Low intensity, just enough to ready the tissue."],
+      ["2 · Skill","Handstand, planche, lever practice while coordination is fresh."],
+      ["3 · Power","Plyos and explosive pulls, crisp and well short of failure."],
+      ["4 · Strength","Optionally primed with a short overcoming isometric (max push into an immovable object), then your main lift within a couple of minutes."],
+      ["5 · Heavy tendon (last)","Slow eccentrics, eccentric-isometrics, long yielding holds (German hang, Nordic). Most fatiguing, so it goes last."]
+    ];
+    var ol=dv({marginTop:"8px"});
+    for(var oi=0;oi<steps.length;oi++){
+      var sRow=dv({marginBottom:"6px",paddingBottom:"6px",borderBottom:oi<steps.length-1?"1px dotted "+Cl:"none"});
+      sRow.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",color:Ci},steps[oi][0]));
+      sRow.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"1px",lineHeight:"1.45"},steps[oi][1]));
+      ol.appendChild(sRow);
+    }
+    ordC.appendChild(ol);
+    ordC.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:"#c8a24e",marginTop:"4px",lineHeight:"1.5"},"Why: skill and power need a fresh nervous system; tendons respond to load and time under tension and cost little when trained fatigued."));
+    ordC.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginTop:"6px",lineHeight:"1.5"},"Weekly fit: heavy tendon work 2-3x/wk on non-combat 4am sessions. Skip Monday (BJJ pm already loads the joints), keep Saturday light before Krav. Bedtime 20:30."));
+  }
+  wrap.appendChild(ordC);
+
   var activeCircuit=D._kbCircuit||null;
   var kbC=card({borderLeft:"3px solid #4a4a4a"});
   kbC.appendChild(lbl("Kettlebell Circuit"));
@@ -1472,8 +1503,8 @@ function renderWod(){
     wrap.appendChild(warn);return wrap;
   }
 
-  var phaseOf=function(ck){var o=OG[ck];if(!o)return "strength";if(o.warmup)return "warmup";if(o.power)return "power";if(ck==="control")return "control";return "strength";};
-  var phaseInfo={warmup:{t:"WARM-UP / MOBILITY",d:"Active mobility — prep, not fatigue. OG2: also do this daily.",c:"#1a6b6b"},power:{t:"POWER (fresh CNS)",d:"Explosive, low-rep, full rest. Not to failure — scale by feel.",c:"#8b1a3a"},strength:{t:"STRENGTH WORK",d:"The core of your session.",c:Ci},control:{t:"CONTROL / COOL-DOWN",d:"Tempo, holds, end-range control while fatigued.",c:"#6b4a1a"}};
+  var phaseOf=function(ck){var o=OG[ck];if(!o)return "strength";if(o.warmup)return "warmup";if(o.skill)return "skill";if(o.power)return "power";if(ck==="control")return "control";return "strength";};
+  var phaseInfo={warmup:{t:"WARM-UP / MOBILITY · LIGHT TENDON PREP",d:"Active mobility plus light tendon prep (wrist work, easy holds). Low intensity, just enough to ready the tissue.",c:"#1a6b6b"},skill:{t:"SKILL (freshest CNS)",d:"Handstand, planche, lever practice while coordination is fresh. Quality reps, well short of failure.",c:"#3a6b8b"},power:{t:"POWER (fresh CNS)",d:"Explosive, low-rep, full rest. Crisp and well short of failure.",c:"#8b1a3a"},strength:{t:"STRENGTH WORK",d:"The core of your session. Optional primer: a short overcoming isometric (max push into an immovable object), then your main lift within a couple of minutes.",c:Ci},control:{t:"CONTROL / COOL-DOWN",d:"Tempo, holds, end-range control while fatigued.",c:"#6b4a1a"}};
   var lastPhase=null;
   for(var ei=0;ei<cats.length;ei++){
     (function(catKey){
@@ -1581,6 +1612,17 @@ function renderWod(){
       c.appendChild(brow);wrap.appendChild(c);
     })(cats[ei]);
   }
+
+  // Heavy tendon work closes the session — it's the most fatiguing block, so it runs
+  // last where tired tissue costs it little. Lives in REHAB & TENDON.
+  var tenPhase=dv({margin:"14px 0 4px 0",borderBottom:"1px dashed #8f7433",paddingBottom:"3px"});
+  tenPhase.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",letterSpacing:"0.15em",color:"#8f7433"},"HEAVY TENDON WORK (last)"));
+  tenPhase.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,marginTop:"1px"},"Slow eccentrics, eccentric-isometrics, long yielding holds (German hang, Nordic). High fatigue, so after everything else. 2-3x/wk, not Monday (BJJ pm), light Saturday before Krav."));
+  wrap.appendChild(tenPhase);
+  var tenCard=card({borderLeft:"3px solid #8f7433"});
+  tenCard.appendChild(tw("Tendons adapt to load and time under tension, not freshness. Working them fatigued costs almost nothing, while skill and power need a fresh nervous system.",{color:Cm,fontSize:"11px",marginBottom:"10px",lineHeight:"1.5"}));
+  tenCard.appendChild(iBtn("Go to Rehab & Tendon",function(){VIEW="train";trainSub="rehab";persistUiState();render();},{head:true,full:true}));
+  wrap.appendChild(tenCard);
 
   var totalDone=0;var keys=Object.keys(completed);for(var ki=0;ki<keys.length;ki++)totalDone+=completed[keys[ki]];
   var kbDone=0;for(var li=0;li<logSets.length;li++)if(logSets[li].category==="kettlebell")kbDone++;
@@ -1976,7 +2018,8 @@ var OG2_REFERENCE = ""
 + "**Ch 14 — Overreaching + Overtraining + RPE:** Overreaching = short-term depressed performance that supercompensates after a deload (planned overreaching is the engine of peaking/tapering and the A&I model). Overtraining = chronic under-recovery, weeks-to-months to recover, hard to reach as a beginner. Watch for: regression of capabilities across cycles, sleep disruption, decreased appetite (parasympathetic) or elevated resting HR + insomnia + nervousness (sympathetic), perpetual soreness, elevated injury risk. RPE is for managing fatigue, not driving progression — if reps drop while RPE stays at 10, that signals overreach/overtrain and the answer is deload, not more volume. RPE 8 at prescribed reps = room to push; RPE 10 = use repetition-addition bridging not a full jump. Training log mandatory at intermediate+.\n\n"
 + "**Ch 16 — Lifestyle (Sleep/Nutrition/Sickness):** Sleep 7.5-9h in 1.5h cycles (better 7.5 or 9 than 8); pre-10pm ideal; dark/cool 60-65°F/quiet; no screens 1-2h before bed. Protein 0.7-1.0 g/lb bodyweight in ~30g servings every 2-3h (total daily protein dominates over timing per Schoenfeld). Diet modulates weight; exercise modulates body composition. Liquid post-workout nutrition reaches muscles faster. Proven supplements: whey, creatine, casein, BCAAs; vit D + fish oil for general health. Working out sick: no high-intensity if illness below the neck or with fever; head colds OK at low intensity; chest infections need rest plus gentle walking/breathing.\n\n"
 + "**Ch 17-20 — Routine construction by level:** Untrained beginner: full-body 3x/week M/W/F, 5-15 rep range (build connective tissue and movement patterns first), one skill (wall handstand 5-10 min), 2 push + 2 pull + 2 leg compounds at 3x5→15 / 3min rest / 10x0 tempo (jumping pull-ups/dips with 5s eccentric if not yet at concentric), L-sit + compression + targeted prehab. Trained beginner: shift toward 5-8 rep range for strength, ensure horizontal-pull volume matches if coming from pressing-heavy. Intermediate: introduce simple periodization (light/heavy before A&I), consider 4th workout, specialize toward 2 push + 2 pull goals; static-hold goals (BL/FL/planche/cross) viable. Splits become reasonable but cost frequency. Diagnose plateaus by terminating after 4 weeks of no progress. Advanced: DUP or hybrid light/heavy DUP, training log mandatory, weak-link isolation targeted; recovery (sleep/nutrition/stress) becomes load-bearing.\n\n"
-+ "**Ch 21-22 — Injury/prehab heuristics:** Tendinopathy is a continuum: mild 'itis' inflammation → tendinosis chronic degeneration → partial/full tear. First-line: stop the aggravating exercise, switch to mobility (resting fully is worse than light movement), 1-2 weeks usually clears mild cases; reload at 40% volume and add 10%/week back. Self-massage of muscle belly (cross-friction perpendicular, MFR parallel) 5-30 min/day — light on the tendon itself. Heat/contrast baths (alternating cold/hot every minute, 5-8 rounds) outperform ice for chronic cases. Light stretch agonist + strengthen antagonist. Eccentrics are the ONLY tendinopathy intervention with strong RCT evidence — 5121 tempo (5s eccentric), start at 40% 1RM, 20 reps building to 30-50 before increasing load, not-to-failure. Common sites: medial/lateral epicondylitis, triceps tendonitis, biceps tendonitis, rotator cuff, wrist. Avoid corticosteroids and chronic NSAIDs — short-term relief, long-term tendon-quality harm.";
++ "**Ch 21-22 — Injury/prehab heuristics:** Tendinopathy is a continuum: mild 'itis' inflammation → tendinosis chronic degeneration → partial/full tear. First-line: stop the aggravating exercise, switch to mobility (resting fully is worse than light movement), 1-2 weeks usually clears mild cases; reload at 40% volume and add 10%/week back. Self-massage of muscle belly (cross-friction perpendicular, MFR parallel) 5-30 min/day — light on the tendon itself. Heat/contrast baths (alternating cold/hot every minute, 5-8 rounds) outperform ice for chronic cases. Light stretch agonist + strengthen antagonist. Eccentrics are the ONLY tendinopathy intervention with strong RCT evidence — 5121 tempo (5s eccentric), start at 40% 1RM, 20 reps building to 30-50 before increasing load, not-to-failure. Common sites: medial/lateral epicondylitis, triceps tendonitis, biceps tendonitis, rotator cuff, wrist. Avoid corticosteroids and chronic NSAIDs — short-term relief, long-term tendon-quality harm.\n\n"
++ "**The Tempered Body — Session Sequencing & Tendon Scheduling:** Order a mixed session skill/power first, heavy tendon work last. Full 4am order: warm-up + mobility with light tendon prep (wrist work, easy holds) → skill (handstand, planche, lever practice, fresh coordination) → power (plyos, explosive pulls, crisp, short of failure) → strength, optionally primed by a short overcoming isometric (a few max-effort pushes into an immovable object, then the main lift within a couple of minutes) → heavy tendon work (slow eccentrics, eccentric-isometrics, long yielding holds like German hang eccentrics and Nordic curls). The Tempered Body pairs the overcoming isometric with the main lift in its push/pull/leg plan, and its power-focused plans put explosive work first. Rationale: skill and power depend on a fresh nervous system, while tendons respond to load and time under tension and don't need freshness, so training them fatigued costs very little; running the order backwards makes the technical work worse and leaves tendon work about the same. Short overcoming isometrics are the exception to tendon-last, they work well as a strength primer. Weekly fit: tendons adapt slowly and the book's plans train them 2-3x/week, so heavy tendon work goes on 2-3 non-combat 4am sessions, not every morning. Leave it off Monday (BJJ evening already loads the joints) and keep Saturday light before Krav. Bedtime target 20:30.";
 
 // System prompt for picture-macro estimation — returns ONLY JSON, no preamble
 var SNAP_MACRO_SYSTEM_PROMPT = "You are a macro estimation assistant. The user will send a photo of a single meal. Estimate macros realistically based on what's visible: portion size, visible protein source, carb sources, fats, oils, sauces, sides. Be precise about portion estimation — large plates and bowls trick the eye. Return ONLY valid JSON with this exact shape:\n{\n  \"name\": \"short descriptive meal name\",\n  \"kcal\": <integer, total>,\n  \"protein_g\": <integer>,\n  \"carbs_g\": <integer>,\n  \"fat_g\": <integer>,\n  \"confidence\": <integer 1-10 where 10 is high>,\n  \"notes\": \"optional 1-line note on assumptions made\"\n}\nNo markdown, no preamble, no explanation. JSON only.";
@@ -2915,6 +2958,12 @@ function renderRehab(){
 
   wrap.appendChild(mk("div",{fontFamily:FB,fontSize:"10px",color:Cm,marginBottom:"4px"},
     today+"  ·  "+doneCount+" / "+AF.length+" categories touched today  ·  Daily = one-tap log; Strength/Plyo = sets × reps"));
+
+  var seqNote=card({borderLeft:"3px solid #8f7433"});
+  seqNote.appendChild(mk("div",{fontFamily:FH,fontSize:"11px",letterSpacing:"0.12em",color:"#c8a24e",marginBottom:"4px"},"HEAVY TENDON WORK RUNS LAST"));
+  seqNote.appendChild(tw("Do the heavy eccentrics and long yielding holds after skill, power, and strength. They're the most fatiguing block, and tendons respond to load and time under tension, not freshness, so working them tired costs almost nothing.",{color:Cm,fontSize:"10px",lineHeight:"1.5",marginBottom:"6px"}));
+  seqNote.appendChild(tw("Weekly fit: 2-3x/wk on non-combat 4am sessions. Skip Monday (BJJ pm already loads the joints), keep Saturday light before Krav. Daily maintenance below is fine every day.",{color:Cm,fontSize:"10px",lineHeight:"1.5"}));
+  wrap.appendChild(seqNote);
 
   function buildAfCard(c,isStrength){
     var cur=afExerciseById(c.id,D.rehab.current[c.id])||c.progressions[0];
@@ -3939,7 +3988,7 @@ function renderCoach(){
       balance: "Analyze my push/pull structural balance."+NL+NL+"My training context:"+NL+ctxJson+NL+NL+"Please:"+NL+"1. Assess my push/pull set ratio (OG recommends 1:1, with extra horizontal pulling for shoulder health)"+NL+"2. Check if I am training OG-recommended prehab movements (back lever for shoulder ext, L-sit for core)"+NL+"3. Identify dangerous imbalances (OG author injured his shoulder from too much push)"+NL+"4. Give specific prescription to correct any imbalances"+NL+"5. Flag exercises to prioritize or deprioritize based on my current levels"
     };
 
-    var sysPrompt = "You are an expert performance coach for a multi-discipline athlete. Calisthenics core methodology is Steven Low's Overcoming Gravity 2nd Edition (OG2). You have access to the athlete's real training data across SIX domains: (1) CALISTHENICS — OG2 progressions; SAID, structural balance (push:pull), linear progression, iso 1-rep = 2s at 60-75% max hold, eccentrics as bridge tools, full-body for beginners. SESSION STRUCTURE: mobility warm-up → power/plyo (CNS-fresh, low-rep, 3-min rest, NOT to failure) → strength core → control/tempo cool-down. (2) SPRINT — masters T&F + Hyrox prep. Track 1RM-equivalent PRs per distance (20/40/60/100/200/400/800/1000/1600m); types include accel / max_v / fly / tempo / hill / resisted / hyrox-1k. (3) ANKLE-FOOT REHAB — six categories (intrinsics, dorsiflexors, plantarflexors, ankle mobility, balance, plyo). Daily-maintenance categories should be touched most days; strength uses progression ladders. Alfredson eccentric protocol (3×15 BID, both straight + bent knee) is the gold standard for Achilles. (4) MARTIAL ARTS — tracked as time only (separate training program). Just visibility. (5) HYROX — 8 stations + 1km runs. PRs per station at standard target. (6) MEALS + IF — pescatarian-first rotation, 18:6 floating window, macros from Mifflin-St Jeor → cut deficit → P/F/C split → per-meal split. Supplement stack: creatine, caffeine+theanine, whey, omega-3, vit D, magnesium, melatonin. ATHLETE GOAL: lean year-round (single-digit BF), Baki/Yujiro physique = the STRIKER archetype (high Power Output + Leanness, mid-high Relative Strength + Flexibility, moderate Muscle Mass + Skill). Multi-domain readiness, masters T&F competition, Hyrox events. Be direct, specific, and reference their actual numbers and exercises. Note interactions across domains (e.g. a heavy sprint day affects calisthenics readiness; an IF window violation affects recovery; tib weakness limits sprint progression). No generic advice."
+    var sysPrompt = "You are an expert performance coach for a multi-discipline athlete. Calisthenics core methodology is Steven Low's Overcoming Gravity 2nd Edition (OG2). You have access to the athlete's real training data across SIX domains: (1) CALISTHENICS — OG2 progressions; SAID, structural balance (push:pull), linear progression, iso 1-rep = 2s at 60-75% max hold, eccentrics as bridge tools, full-body for beginners. SESSION STRUCTURE (4am order): mobility warm-up + light tendon prep (wrist work, easy holds) → SKILL (handstand/planche/lever, freshest CNS) → power/plyo (CNS-fresh, low-rep, 3-min rest, NOT to failure) → strength core (optionally primed by a short overcoming isometric — max push into an immovable object, then the main lift within ~2 min) → control/tempo → HEAVY TENDON WORK LAST (slow eccentrics, eccentric-isometrics, long yielding holds like German hang eccentrics and Nordic curls). Rationale: skill and power need a fresh nervous system; tendons respond to load × time-under-tension and cost little when trained fatigued, so running tendon work earlier would only degrade the technical work. Heavy tendon work 2-3x/wk on non-combat 4am sessions — skip Monday (BJJ pm already loads the joints), keep Saturday light before Krav. Target bedtime 20:30. (2) SPRINT — masters T&F + Hyrox prep. Track 1RM-equivalent PRs per distance (20/40/60/100/200/400/800/1000/1600m); types include accel / max_v / fly / tempo / hill / resisted / hyrox-1k. (3) ANKLE-FOOT REHAB — six categories (intrinsics, dorsiflexors, plantarflexors, ankle mobility, balance, plyo). Daily-maintenance categories should be touched most days; strength uses progression ladders. Alfredson eccentric protocol (3×15 BID, both straight + bent knee) is the gold standard for Achilles. (4) MARTIAL ARTS — tracked as time only (separate training program). Just visibility. (5) HYROX — 8 stations + 1km runs. PRs per station at standard target. (6) MEALS + IF — pescatarian-first rotation, 18:6 floating window, macros from Mifflin-St Jeor → cut deficit → P/F/C split → per-meal split. Supplement stack: creatine, caffeine+theanine, whey, omega-3, vit D, magnesium, melatonin. ATHLETE GOAL: lean year-round (single-digit BF), Baki/Yujiro physique = the STRIKER archetype (high Power Output + Leanness, mid-high Relative Strength + Flexibility, moderate Muscle Mass + Skill). Multi-domain readiness, masters T&F competition, Hyrox events. Be direct, specific, and reference their actual numbers and exercises. Note interactions across domains (e.g. a heavy sprint day affects calisthenics readiness; an IF window violation affects recovery; tib weakness limits sprint progression). No generic advice."
       + "\n\n=== OG2 REFERENCE BLOCK (distilled, weighted by tier) ===\n"
       + OG2_REFERENCE;
 
