@@ -651,6 +651,14 @@ function isoDate(d){var y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();retur
 function hmTime(ts){var d=new Date(ts),h=d.getHours(),m=d.getMinutes();return(h<10?"0":"")+h+":"+(m<10?"0":"")+m;}
 function todayKey(){return isoDate(new Date());}
 
+// ── SLEEP HELPERS ─────────────────────────────────────────────────────────────
+// Clock string "HH:MM" → minutes past midnight. null if unparseable.
+function parseHM(s){if(!s)return null;var p=(""+s).split(":");var h=parseInt(p[0],10),m=parseInt(p[1],10);if(isNaN(h)||isNaN(m))return null;return h*60+m;}
+// Minutes → "7h 32m" / "48m".
+function fmtMins(mins){if(mins==null||isNaN(mins))return "—";var h=Math.floor(mins/60),m=Math.round(mins%60);return(h>0?h+"h "+(m<10?"0":"")+m+"m":m+"m");}
+// Derive time-in-bed, actual sleep (minus night wakings), and efficiency from an entry.
+function sleepMetrics(e){if(!e)return null;var b=parseHM(e.bedtime),w=parseHM(e.wake);if(b==null||w==null)return null;var tib=w-b;if(tib<=0)tib+=1440;var awake=e.awake_min||0;var asleep=Math.max(0,tib-awake);var eff=tib>0?Math.round(asleep/tib*100):0;return{tib:tib,asleep:asleep,awake:awake,eff:eff,wakeups:e.wakeups||0};}
+
 // Grocery list — section classification tuned to HEB Rockwall + Costco Rockwall
 var STORE_SECTIONS=[
   ["Costco · Bulk Proteins",/salmon|shrimp|chicken (breast|thigh)|raw chicken|tuna|egg whites|whole eggs|large eggs/i],
@@ -798,6 +806,9 @@ function loadData(){
       if(!d.rehab.log)d.rehab.log=[];
       if(!d.martial)d.martial={log:[]};
       if(!d.martial.log)d.martial.log=[];
+      if(!d.sleep)d.sleep={target:{bedtime:"20:30",wake:"04:00"},log:[]};
+      if(!d.sleep.target)d.sleep.target={bedtime:"20:30",wake:"04:00"};
+      if(!d.sleep.log)d.sleep.log=[];
       if(!d.rings)d.rings={entries:[],floor:{desc:"30 min training — no matter what"},wind:{}};
       if(!d.rings.entries)d.rings.entries=[];
       if(!d.rings.floor)d.rings.floor={desc:"30 min training — no matter what"};
@@ -813,7 +824,7 @@ function loadData(){
       return d;
     }
   }catch(e){}
-  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[],custom_recipes:[],activePrep:null},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT},rings:{entries:[],floor:{desc:"30 min training — no matter what"},wind:{}}};
+  return{sessions:[],progressions:{},settings:{split:"fullbody",sets:3,repScheme:"failure"},sprint:{sessions:[],prs:{}},meals:{profile:DEFAULT_MEALS_PROFILE,rotation:["salmon_ramen","orange_pepper_shrimp","shrimp_fried_rice_hp"],meals_per_window:3,prep_servings:20,"if":{},log:[],custom_recipes:[],activePrep:null},supps:{active:["creatine","caffeine","theanine","whey","omega3","vit_d","magnesium","melatonin"],log:[]},rehab:{current:DEFAULT_REHAB_CURRENT,log:[]},martial:{log:[]},sleep:{target:{bedtime:"20:30",wake:"04:00"},log:[]},hyrox:{sessions:[],prs:{}},archetype:"striker",uiState:{},coachConfig:{proxyUrl:COACH_PROXY_URL_DEFAULT,sharedSecret:COACH_SHARED_SECRET_DEFAULT},rings:{entries:[],floor:{desc:"30 min training — no matter what"},wind:{}}};
 }
 function saveData(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
 
@@ -883,6 +894,7 @@ var snapPreview=null;  // {name,kcal,p,c,f,confidence,notes,image_b64} after a /
 var snapLoading=false;
 var rehabPickerCat=null;
 var trainSub=(D.uiState&&D.uiState.trainSub)||"sprint",insightsSub=(D.uiState&&D.uiState.insightsSub)||"progress",adminSub=(D.uiState&&D.uiState.adminSub)||"settings",bodySub=(D.uiState&&D.uiState.bodySub)||"scan";
+var sleepForm=null;  // transient in-progress sleep log entry
 
 // Persist sub-tab choice so reopening the app returns to where you left off
 function persistUiState(){if(!D.uiState)D.uiState={};D.uiState.trainSub=trainSub;D.uiState.insightsSub=insightsSub;D.uiState.adminSub=adminSub;D.uiState.bodySub=bodySub;D.uiState.mealsSub=mealsSub;saveData(D);}
@@ -1323,7 +1335,7 @@ function render(){
   root.appendChild(hdr);
   // Title is "Parent · Sub" when in a parent tab so the user knows where they are
   var titles={wod:"Today's Workout",log:"Manual Log",train:"Training",meals:"Meals & IF",rings:"Five Rings",insights:"Insights",body:"Body Composition",coach:"AI Coach",admin:"Setup"};
-  var subTitles={sprint:"Sprint",rehab:"Rehab & Tendon",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup",scan:"Body Composition",archetype:"Archetype Radar"};
+  var subTitles={sprint:"Sprint",rehab:"Rehab & Tendon",martial:"Martial Arts",hyrox:"Hyrox",progress:"Progression Charts",history:"Performance History",settings:"Training Settings",data:"Data & Backup",scan:"Body Composition",archetype:"Archetype Radar",sleep:"Sleep"};
   var titleText=titles[VIEW]||"Today's Workout";
   if(VIEW==="train"&&subTitles[trainSub])titleText+=" · "+subTitles[trainSub];
   else if(VIEW==="insights"&&subTitles[insightsSub])titleText+=" · "+subTitles[insightsSub];
@@ -1970,6 +1982,19 @@ function buildTrainingContext(){
     };
   }
 
+  // Sleep: last night + 7-day averages (efficiency accounts for night wakings)
+  if(d.sleep&&d.sleep.log&&d.sleep.log.length){
+    var slog=d.sleep.log;
+    var lastN=slog[slog.length-1];var lm=sleepMetrics(lastN);
+    var s7=slog.filter(function(e){return(now-new Date(e.date+"T00:00:00").getTime())<7*86400000;});
+    var ss=0,se=0,sw=0,sn=0;for(var si=0;si<s7.length;si++){var sm=sleepMetrics(s7[si]);if(sm){ss+=sm.asleep;se+=sm.eff;sw+=sm.wakeups;sn++;}}
+    ctx.sleep={
+      target:d.sleep.target,
+      lastNight:lm?{date:lastN.date,asleepMin:lm.asleep,inBedMin:lm.tib,efficiencyPct:lm.eff,wakeups:lm.wakeups,awakeMin:lm.awake,quality:lastN.quality}:null,
+      avg7d:sn?{asleepMin:Math.round(ss/sn),efficiencyPct:Math.round(se/sn),wakeups:Math.round(sw/sn*10)/10,nightsLogged:sn}:null
+    };
+  }
+
   return ctx;
 }
 
@@ -2336,9 +2361,10 @@ function renderTrain(){
 // Parent: body composition + archetype radar
 function renderBodyParent(){
   var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
-  wrap.appendChild(pillBar([["scan","SCAN"],["archetype","ARCHETYPE"]],bodySub,function(v){bodySub=v;persistUiState();render();}));
+  wrap.appendChild(pillBar([["scan","SCAN"],["archetype","ARCHETYPE"],["sleep","SLEEP"]],bodySub,function(v){bodySub=v;persistUiState();render();}));
   if(bodySub==="scan")wrap.appendChild(renderBody());
   else if(bodySub==="archetype")wrap.appendChild(renderArchetype());
+  else if(bodySub==="sleep")wrap.appendChild(renderSleep());
   return wrap;
 }
 
@@ -2866,6 +2892,185 @@ function renderRings(){
     hc.appendChild(row);
   }
   if(!shown)hc.appendChild(tw("Nothing yet. The rings are not waiting for you to be ready.",{fontSize:"11px",color:Cm,fontStyle:"italic",padding:"6px 0"}));
+  wrap.appendChild(hc);
+
+  return wrap;
+}
+
+function renderSleep(){
+  var wrap=dv({display:"flex",flexDirection:"column",gap:"10px"});
+  if(!D.sleep)D.sleep={target:{bedtime:"20:30",wake:"04:00"},log:[]};
+  var tgt=D.sleep.target||{bedtime:"20:30",wake:"04:00"};
+  var log=D.sleep.log;
+  var today=todayKey();
+
+  // Entry already logged for this morning?
+  var todayEntry=null,todayIdx=-1;
+  for(var i=log.length-1;i>=0;i--){if(log[i].date===today){todayEntry=log[i];todayIdx=i;break;}}
+
+  // Seed the transient form from today's entry (edit) or the target (fresh)
+  if(!sleepForm){
+    sleepForm=todayEntry
+      ? {bedtime:todayEntry.bedtime,wake:todayEntry.wake,wakeups:todayEntry.wakeups||0,awake_min:todayEntry.awake_min||0,quality:todayEntry.quality||3,notes:todayEntry.notes||""}
+      : {bedtime:tgt.bedtime||"20:30",wake:tgt.wake||"04:00",wakeups:0,awake_min:0,quality:3,notes:""};
+  }
+
+  // ── Target card ──
+  var tc=card({borderLeft:"3px solid "+Cb});
+  var thdr=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline"});
+  thdr.appendChild(lbl("Target"));
+  var editT=mk("button",{fontFamily:FB,fontSize:"9px",letterSpacing:"0.1em",color:Cm,background:"transparent",border:"1px solid "+Cl,padding:"2px 7px",borderRadius:"2px",cursor:"pointer"},"EDIT");
+  editT.addEventListener("click",function(){
+    var b=prompt("Target bedtime (HH:MM, 24-hour):",tgt.bedtime);if(b==null)return;
+    var w=prompt("Target wake time (HH:MM, 24-hour):",tgt.wake);if(w==null)return;
+    if(parseHM(b)==null||parseHM(w)==null){alert("Use HH:MM, e.g. 20:30");return;}
+    D.sleep.target={bedtime:b,wake:w};saveData(D);render();
+  });
+  thdr.appendChild(editT);
+  tc.appendChild(thdr);
+  var tmet=sleepMetrics({bedtime:tgt.bedtime,wake:tgt.wake,awake_min:0});
+  var trow=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline",marginTop:"4px"});
+  trow.appendChild(mk("div",{fontFamily:FH,fontSize:"18px",color:Ci},tgt.bedtime+" → "+tgt.wake));
+  trow.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:Cm},tmet?fmtMins(tmet.tib)+" in bed":""));
+  tc.appendChild(trow);
+  wrap.appendChild(tc);
+
+  // ── Log card ──
+  var lc=card();
+  lc.appendChild(lbl(todayEntry?"Edit last night":"Log last night"));
+  lc.appendChild(tw("Tracks wake-ups so efficiency reflects real sleep, not just time in bed.",{color:Cm,fontSize:"10px",marginBottom:"8px"}));
+
+  function timeField(label,key){
+    var f=dv({flex:"1"});f.appendChild(lbl(label));
+    var inp=document.createElement("input");inp.type="time";inp.value=sleepForm[key]||"";
+    inp.style.fontFamily=FH;inp.style.fontSize="15px";
+    inp.addEventListener("input",function(){sleepForm[key]=inp.value;});
+    inp.addEventListener("change",function(){sleepForm[key]=inp.value;render();});
+    f.appendChild(inp);return f;
+  }
+  var row1=dv({display:"flex",gap:"10px",marginBottom:"8px"});
+  row1.appendChild(timeField("Bedtime",'bedtime'));
+  row1.appendChild(timeField("Wake",'wake'));
+  lc.appendChild(row1);
+
+  function numField(label,key,ph){
+    var f=dv({flex:"1"});f.appendChild(lbl(label));
+    var inp=document.createElement("input");inp.type="number";inp.min="0";inp.placeholder=ph;
+    inp.value=(sleepForm[key]||sleepForm[key]===0)?sleepForm[key]:"";
+    inp.style.fontFamily=FH;inp.style.fontSize="15px";
+    inp.addEventListener("input",function(){sleepForm[key]=inp.value===""?0:parseFloat(inp.value);});
+    inp.addEventListener("change",function(){render();});
+    f.appendChild(inp);return f;
+  }
+  var row2=dv({display:"flex",gap:"10px",marginBottom:"10px"});
+  row2.appendChild(numField("Night wake-ups",'wakeups',"0"));
+  row2.appendChild(numField("Mins awake (total)",'awake_min',"0"));
+  lc.appendChild(row2);
+
+  // Quality 1-5
+  lc.appendChild(lbl("Quality"));
+  var qLabels=["","wrecked","rough","ok","good","great"];
+  var qrow=dv({display:"flex",gap:"5px",marginTop:"4px",marginBottom:"10px"});
+  for(var q=1;q<=5;q++){
+    (function(qv){var active=sleepForm.quality===qv;
+      var qb=mk("button",{flex:"1",fontFamily:FB,fontSize:"10px",color:active?Cs:Ci,background:active?Ci:"transparent",border:"1px solid "+Cm,padding:"6px 0",borderRadius:"2px",cursor:"pointer"},qv+(active?" · "+qLabels[qv]:""));
+      qb.addEventListener("click",function(){sleepForm.quality=qv;render();});
+      qrow.appendChild(qb);
+    })(q);
+  }
+  lc.appendChild(qrow);
+
+  // Notes
+  lc.appendChild(lbl("Notes"));
+  var nta=document.createElement("textarea");nta.value=sleepForm.notes||"";nta.placeholder="teething, 2 bottle wakeups, up at 3…";
+  nta.style.marginBottom="10px";
+  nta.addEventListener("input",function(){sleepForm.notes=nta.value;});
+  lc.appendChild(nta);
+
+  // Live preview of this entry
+  var prev=sleepMetrics(sleepForm);
+  if(prev){
+    var pbox=dv({background:Cy,padding:"10px",borderRadius:"2px",marginBottom:"10px"});
+    var prow=dv({display:"flex",justifyContent:"space-between",alignItems:"baseline"});
+    prow.appendChild(mk("div",{fontFamily:FH,fontSize:"22px",color:Ci},fmtMins(prev.asleep)));
+    prow.appendChild(mk("div",{fontFamily:FB,fontSize:"11px",color:prev.eff>=85?Cg:(prev.eff>=70?Cb:Cr)},prev.eff+"% efficiency"));
+    pbox.appendChild(prow);
+    pbox.appendChild(ibar(prev.eff,prev.eff>=85?Cg:(prev.eff>=70?Cb:Cr)));
+    pbox.appendChild(tw(fmtMins(prev.tib)+" in bed · "+fmtMins(prev.awake)+" awake across "+prev.wakeups+" waking"+(prev.wakeups===1?"":"s"),{color:Cm,fontSize:"10px",marginTop:"4px"}));
+    if(tmet){var dvm=prev.asleep-(tmet.tib);pbox.appendChild(tw("Target in-bed window is "+fmtMins(tmet.tib)+".",{color:Cm,fontSize:"10px",marginTop:"2px"}));}
+    lc.appendChild(pbox);
+  }
+
+  lc.appendChild(iBtn(todayEntry?"[ UPDATE LAST NIGHT ]":"[ SAVE LAST NIGHT ]",function(){
+    if(parseHM(sleepForm.bedtime)==null||parseHM(sleepForm.wake)==null){alert("Enter bedtime and wake time.");return;}
+    var entry={date:today,time:hmTime(Date.now()),bedtime:sleepForm.bedtime,wake:sleepForm.wake,wakeups:parseInt(sleepForm.wakeups,10)||0,awake_min:parseFloat(sleepForm.awake_min)||0,quality:sleepForm.quality||3,notes:sleepForm.notes||""};
+    if(todayIdx>=0)D.sleep.log[todayIdx]=entry;else D.sleep.log.push(entry);
+    sleepForm=null;saveData(D);render();
+  },{primary:true,full:true,head:true}));
+  wrap.appendChild(lc);
+
+  // ── 7-day summary ──
+  var now=Date.now();
+  var last7=log.filter(function(e){return (now-new Date(e.date+"T00:00:00").getTime())<7*86400000;});
+  if(last7.length){
+    var sumSleep=0,sumEff=0,sumWake=0,n=0;
+    for(var s=0;s<last7.length;s++){var m=sleepMetrics(last7[s]);if(m){sumSleep+=m.asleep;sumEff+=m.eff;sumWake+=m.wakeups;n++;}}
+    if(n){
+      var sc2=card({borderLeft:"3px solid "+Cb});
+      sc2.appendChild(lbl("Last 7 nights · "+n+" logged"));
+      var grid=dv({display:"flex",justifyContent:"space-between",marginTop:"6px"});
+      function stat(v,l){var c=dv({textAlign:"center",flex:"1"});c.appendChild(mk("div",{fontFamily:FH,fontSize:"18px",color:Ci},v));c.appendChild(mk("div",{fontFamily:FB,fontSize:"9px",color:Cm,letterSpacing:"0.08em",marginTop:"2px"},l));return c;}
+      grid.appendChild(stat(fmtMins(Math.round(sumSleep/n)),"AVG SLEEP"));
+      grid.appendChild(stat(Math.round(sumEff/n)+"%","AVG EFF"));
+      grid.appendChild(stat((Math.round(sumWake/n*10)/10),"AVG WAKE-UPS"));
+      sc2.appendChild(grid);
+      wrap.appendChild(sc2);
+    }
+  }
+
+  // ── 14-night bar chart (actual sleep hours) ──
+  if(log.length){
+    var chart=card();
+    chart.appendChild(lbl("Nightly sleep · last 14"));
+    var recent=log.slice(-14);
+    var maxH=9*60;for(var c2=0;c2<recent.length;c2++){var mm=sleepMetrics(recent[c2]);if(mm&&mm.asleep>maxH)maxH=mm.asleep;}
+    var bars=dv({display:"flex",alignItems:"flex-end",gap:"3px",height:"70px",marginTop:"8px"});
+    for(var c3=0;c3<recent.length;c3++){
+      var m2=sleepMetrics(recent[c3]);var as=m2?m2.asleep:0;
+      var h=maxH>0?Math.max(3,Math.round(as/maxH*68)):3;
+      var col=m2&&m2.eff>=85?Cg:(m2&&m2.eff>=70?Cb:Cr);
+      var bcol=dv({flex:"1",display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center",height:"100%"});
+      bcol.appendChild(mk("div",{width:"100%",height:h+"px",background:col,borderRadius:"1px"}));
+      bars.appendChild(bcol);
+    }
+    chart.appendChild(bars);
+    chart.appendChild(tw("Green ≥85% efficiency · blue ≥70% · red below.",{color:Cm,fontSize:"9px",marginTop:"5px"}));
+    wrap.appendChild(chart);
+  }
+
+  // ── History ──
+  var hc=card();
+  hc.appendChild(lbl("History"));
+  var shown=0;
+  for(var hi=log.length-1;hi>=0&&shown<30;hi--){
+    (function(idx){
+      var e=log[idx];var m=sleepMetrics(e);shown++;
+      var row=dv({padding:"8px 0",borderBottom:"1px dotted "+Cl});
+      var top=dv({display:"flex",alignItems:"center",gap:"8px"});
+      top.appendChild(mk("span",{flex:"1",fontFamily:FH,fontSize:"11px",color:Ci,letterSpacing:"0.06em"},e.date));
+      top.appendChild(mk("span",{fontFamily:FH,fontSize:"12px",color:Ci},m?fmtMins(m.asleep):"—"));
+      if(m)top.appendChild(mk("span",{fontFamily:FB,fontSize:"10px",color:m.eff>=85?Cg:(m.eff>=70?Cb:Cr)},m.eff+"%"));
+      var del=mk("button",{fontFamily:FB,fontSize:"9px",color:Cm,background:"transparent",border:"1px solid "+Cl,padding:"1px 6px",borderRadius:"2px",cursor:"pointer"},"×");
+      del.addEventListener("click",function(){if(confirm("Delete this night?")){D.sleep.log.splice(idx,1);if(e.date===today)sleepForm=null;saveData(D);render();}});
+      top.appendChild(del);
+      row.appendChild(top);
+      var detail=e.bedtime+" → "+e.wake+" · "+(e.wakeups||0)+" wake-up"+((e.wakeups||0)===1?"":"s")+" · "+fmtMins(e.awake_min||0)+" awake · q"+(e.quality||"?");
+      row.appendChild(tw(detail,{color:Cm,fontSize:"10px",marginTop:"3px"}));
+      if(e.notes)row.appendChild(tw(e.notes,{color:Cm,fontSize:"10px",marginTop:"2px",fontStyle:"italic"}));
+      hc.appendChild(row);
+    })(hi);
+  }
+  if(!shown)hc.appendChild(tw("No nights logged yet.",{color:Cm,fontSize:"11px",fontStyle:"italic",padding:"6px 0"}));
   wrap.appendChild(hc);
 
   return wrap;
@@ -3988,7 +4193,7 @@ function renderCoach(){
       balance: "Analyze my push/pull structural balance."+NL+NL+"My training context:"+NL+ctxJson+NL+NL+"Please:"+NL+"1. Assess my push/pull set ratio (OG recommends 1:1, with extra horizontal pulling for shoulder health)"+NL+"2. Check if I am training OG-recommended prehab movements (back lever for shoulder ext, L-sit for core)"+NL+"3. Identify dangerous imbalances (OG author injured his shoulder from too much push)"+NL+"4. Give specific prescription to correct any imbalances"+NL+"5. Flag exercises to prioritize or deprioritize based on my current levels"
     };
 
-    var sysPrompt = "You are an expert performance coach for a multi-discipline athlete. Calisthenics core methodology is Steven Low's Overcoming Gravity 2nd Edition (OG2). You have access to the athlete's real training data across SIX domains: (1) CALISTHENICS — OG2 progressions; SAID, structural balance (push:pull), linear progression, iso 1-rep = 2s at 60-75% max hold, eccentrics as bridge tools, full-body for beginners. SESSION STRUCTURE (4am order): mobility warm-up + light tendon prep (wrist work, easy holds) → SKILL (handstand/planche/lever, freshest CNS) → power/plyo (CNS-fresh, low-rep, 3-min rest, NOT to failure) → strength core (optionally primed by a short overcoming isometric — max push into an immovable object, then the main lift within ~2 min) → control/tempo → HEAVY TENDON WORK LAST (slow eccentrics, eccentric-isometrics, long yielding holds like German hang eccentrics and Nordic curls). Rationale: skill and power need a fresh nervous system; tendons respond to load × time-under-tension and cost little when trained fatigued, so running tendon work earlier would only degrade the technical work. Heavy tendon work 2-3x/wk on non-combat 4am sessions — skip Monday (BJJ pm already loads the joints), keep Saturday light before Krav. Target bedtime 20:30. (2) SPRINT — masters T&F + Hyrox prep. Track 1RM-equivalent PRs per distance (20/40/60/100/200/400/800/1000/1600m); types include accel / max_v / fly / tempo / hill / resisted / hyrox-1k. (3) ANKLE-FOOT REHAB — six categories (intrinsics, dorsiflexors, plantarflexors, ankle mobility, balance, plyo). Daily-maintenance categories should be touched most days; strength uses progression ladders. Alfredson eccentric protocol (3×15 BID, both straight + bent knee) is the gold standard for Achilles. (4) MARTIAL ARTS — tracked as time only (separate training program). Just visibility. (5) HYROX — 8 stations + 1km runs. PRs per station at standard target. (6) MEALS + IF — pescatarian-first rotation, 18:6 floating window, macros from Mifflin-St Jeor → cut deficit → P/F/C split → per-meal split. Supplement stack: creatine, caffeine+theanine, whey, omega-3, vit D, magnesium, melatonin. ATHLETE GOAL: lean year-round (single-digit BF), Baki/Yujiro physique = the STRIKER archetype (high Power Output + Leanness, mid-high Relative Strength + Flexibility, moderate Muscle Mass + Skill). Multi-domain readiness, masters T&F competition, Hyrox events. Be direct, specific, and reference their actual numbers and exercises. Note interactions across domains (e.g. a heavy sprint day affects calisthenics readiness; an IF window violation affects recovery; tib weakness limits sprint progression). No generic advice."
+    var sysPrompt = "You are an expert performance coach for a multi-discipline athlete. Calisthenics core methodology is Steven Low's Overcoming Gravity 2nd Edition (OG2). You have access to the athlete's real training data across SEVEN domains: (1) CALISTHENICS — OG2 progressions; SAID, structural balance (push:pull), linear progression, iso 1-rep = 2s at 60-75% max hold, eccentrics as bridge tools, full-body for beginners. SESSION STRUCTURE (4am order): mobility warm-up + light tendon prep (wrist work, easy holds) → SKILL (handstand/planche/lever, freshest CNS) → power/plyo (CNS-fresh, low-rep, 3-min rest, NOT to failure) → strength core (optionally primed by a short overcoming isometric — max push into an immovable object, then the main lift within ~2 min) → control/tempo → HEAVY TENDON WORK LAST (slow eccentrics, eccentric-isometrics, long yielding holds like German hang eccentrics and Nordic curls). Rationale: skill and power need a fresh nervous system; tendons respond to load × time-under-tension and cost little when trained fatigued, so running tendon work earlier would only degrade the technical work. Heavy tendon work 2-3x/wk on non-combat 4am sessions — skip Monday (BJJ pm already loads the joints), keep Saturday light before Krav. Target bedtime 20:30. (2) SPRINT — masters T&F + Hyrox prep. Track 1RM-equivalent PRs per distance (20/40/60/100/200/400/800/1000/1600m); types include accel / max_v / fly / tempo / hill / resisted / hyrox-1k. (3) ANKLE-FOOT REHAB — six categories (intrinsics, dorsiflexors, plantarflexors, ankle mobility, balance, plyo). Daily-maintenance categories should be touched most days; strength uses progression ladders. Alfredson eccentric protocol (3×15 BID, both straight + bent knee) is the gold standard for Achilles. (4) MARTIAL ARTS — tracked as time only (separate training program). Just visibility. (5) HYROX — 8 stations + 1km runs. PRs per station at standard target. (6) MEALS + IF — pescatarian-first rotation, 18:6 floating window, macros from Mifflin-St Jeor → cut deficit → P/F/C split → per-meal split. Supplement stack: creatine, caffeine+theanine, whey, omega-3, vit D, magnesium, melatonin. (7) SLEEP — nightly time in bed, night wake-ups, total minutes awake, and sleep efficiency (actual sleep ÷ time in bed). Athlete targets a 20:30 bedtime and 04:00 wake, but sleep is fragmented by a two-year-old, so judge recovery by actual sleep and efficiency rather than time in bed, and factor a rough night into readiness for skill/power and heavy tendon work. ATHLETE GOAL: lean year-round (single-digit BF), Baki/Yujiro physique = the STRIKER archetype (high Power Output + Leanness, mid-high Relative Strength + Flexibility, moderate Muscle Mass + Skill). Multi-domain readiness, masters T&F competition, Hyrox events. Be direct, specific, and reference their actual numbers and exercises. Note interactions across domains (e.g. a heavy sprint day affects calisthenics readiness; an IF window violation affects recovery; tib weakness limits sprint progression). No generic advice."
       + "\n\n=== OG2 REFERENCE BLOCK (distilled, weighted by tier) ===\n"
       + OG2_REFERENCE;
 
