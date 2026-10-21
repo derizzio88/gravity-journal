@@ -5,3 +5,6 @@
 # macOS metadata
 .DS_Store
 **/.DS_Store
+
+# Playwright MCP render-verification artifacts
+.playwright-mcp/
